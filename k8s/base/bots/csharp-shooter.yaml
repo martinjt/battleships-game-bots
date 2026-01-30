@@ -25,7 +25,10 @@ spec:
         - name: TOURNAMENT_MODE
           value: "true"
         - name: BOT_NAME
-          value: "csharp-shooter"
+          valueFrom:
+            secretKeyRef:
+              name: csharp-shooter-config
+              key: bot-name
         - name: GAME_API_URL
           value: "https://battleships.devrel.hny.wtf"
         resources:
