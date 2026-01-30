@@ -1,0 +1,130 @@
+name: Build and Deploy Bots
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  AWS_PROFILE: devrel-sandbox
+  EKS_CLUSTER_NAME: battleships-dev-eks
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required for checkout
+
+jobs:
+  detect-changes:
+    name: Detect Changed Bots
+    runs-on: ubuntu-latest
+    outputs:
+      bots: ${{ steps.detect.outputs.bots }}
+      matrix: ${{ steps.detect.outputs.matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed bots
+        id: detect
+        run: |
+          # Get list of all bot directories
+          ALL_BOTS=$(find bots -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | jq -R -s -c 'split("\n")[:-1]')
+
+          # On first push or workflow_dispatch, deploy all bots
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] || ! git rev-parse HEAD~1 >/dev/null 2>&1; then
+            echo "bots=$ALL_BOTS" >> $GITHUB_OUTPUT
+            echo "matrix=$ALL_BOTS" >> $GITHUB_OUTPUT
+          else
+            # Detect changed bots
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            CHANGED_BOTS=$(echo "$CHANGED_FILES" | grep "^bots/" | cut -d/ -f2 | sort -u | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
+
+            if [ "$CHANGED_BOTS" == "[]" ]; then
+              echo "No bots changed"
+              echo "bots=[]" >> $GITHUB_OUTPUT
+              echo "matrix=[]" >> $GITHUB_OUTPUT
+            else
+              echo "bots=$CHANGED_BOTS" >> $GITHUB_OUTPUT
+              echo "matrix=$CHANGED_BOTS" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  build-and-deploy:
+    name: Build and Deploy
+    needs: detect-changes
+    if: needs.detect-changes.outputs.bots != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bot: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActions-${{ github.run_id }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create ECR repository if it doesn't exist
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          aws ecr describe-repositories --repository-names battleships-${{ matrix.bot }} || \
+          aws ecr create-repository --repository-name battleships-${{ matrix.bot }}
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG bots/${{ matrix.bot }}
+          docker tag $ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG $ECR_REGISTRY/battleships-${{ matrix.bot }}:latest
+          docker push $ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/battleships-${{ matrix.bot }}:latest
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Check if deployment exists
+          if kubectl get deployment battleships-${{ matrix.bot }} -n battleships 2>/dev/null; then
+            # Update existing deployment
+            kubectl set image deployment/battleships-${{ matrix.bot }} \
+              ${{ matrix.bot }}=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
+              -n battleships
+            kubectl rollout status deployment/battleships-${{ matrix.bot }} -n battleships
+          else
+            # Create new deployment from manifest
+            if [ -f k8s/base/bots/${{ matrix.bot }}.yaml ]; then
+              cat k8s/base/bots/${{ matrix.bot }}.yaml | \
+              sed "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG|g" | \
+              kubectl apply -f -
+            else
+              echo "Warning: No manifest found at k8s/base/bots/${{ matrix.bot }}.yaml"
+              echo "Creating basic deployment..."
+              kubectl create deployment battleships-${{ matrix.bot }} \
+                --image=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
+                -n battleships
+            fi
+          fi
+
+      - name: Verify deployment
+        run: |
+          kubectl get deployment battleships-${{ matrix.bot }} -n battleships
+          kubectl get pods -l app=battleships-${{ matrix.bot }} -n battleships

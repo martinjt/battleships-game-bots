@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: battleships-csharp-shooter
+  namespace: battleships
+  labels:
+    app: battleships-csharp-shooter
+    bot: csharp-shooter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: battleships-csharp-shooter
+  template:
+    metadata:
+      labels:
+        app: battleships-csharp-shooter
+        bot: csharp-shooter
+    spec:
+      containers:
+      - name: csharp-shooter
+        image: IMAGE_PLACEHOLDER
+        imagePullPolicy: Always
+        env:
+        - name: TOURNAMENT_MODE
+          value: "true"
+        - name: BOT_NAME
+          value: "csharp-shooter"
+        - name: GAME_API_URL
+          value: "https://battleships.devrel.hny.wtf"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        # Liveness probe to restart if bot crashes
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - dotnet
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        # Readiness probe (bot is ready when process is running)
+        readinessProbe:
+          exec:
+            command:
+            - pgrep
+            - dotnet
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+      restartPolicy: Always
+      # Graceful shutdown
+      terminationGracePeriodSeconds: 30
+---
+# Optional: Service for metrics/monitoring (if needed in future)
+apiVersion: v1
+kind: Service
+metadata:
+  name: battleships-csharp-shooter
+  namespace: battleships
+  labels:
+    app: battleships-csharp-shooter
+spec:
+  selector:
+    app: battleships-csharp-shooter
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
