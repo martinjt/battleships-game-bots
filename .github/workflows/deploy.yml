@@ -8,7 +8,6 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  AWS_PROFILE: devrel-sandbox
   EKS_CLUSTER_NAME: battleships-dev-eks
 
 permissions:
