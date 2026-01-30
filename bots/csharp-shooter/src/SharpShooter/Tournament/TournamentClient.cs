@@ -80,7 +80,7 @@ public class TournamentClient : IDisposable
 
     private async Task RegisterPlayerAsync(CancellationToken cancellationToken)
     {
-        var request = new PlayerRegistrationRequest { Name = _config.BotName };
+        var request = new PlayerRegistrationRequest { DisplayName = _config.BotName };
         var response = await _httpClient.PostAsJsonAsync("/api/v1/players", request, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 

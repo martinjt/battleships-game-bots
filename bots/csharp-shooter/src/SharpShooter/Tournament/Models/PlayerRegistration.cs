@@ -4,8 +4,11 @@ namespace SharpShooter.Tournament.Models;
 
 public class PlayerRegistrationRequest
 {
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = string.Empty;
+    [JsonPropertyName("displayName")]
+    public string DisplayName { get; set; } = string.Empty;
+
+    [JsonPropertyName("maxConcurrentGames")]
+    public int MaxConcurrentGames { get; set; } = 5;
 }
 
 public class PlayerRegistrationResponse
