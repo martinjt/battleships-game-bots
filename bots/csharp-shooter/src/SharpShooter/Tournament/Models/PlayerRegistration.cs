@@ -22,6 +22,9 @@ public class PlayerInfo
     [JsonPropertyName("displayName")]
     public string DisplayName { get; set; } = string.Empty;
 
+    [JsonPropertyName("authSecret")]
+    public string? AuthSecret { get; set; }
+
     [JsonPropertyName("type")]
     public string Type { get; set; } = string.Empty;
 

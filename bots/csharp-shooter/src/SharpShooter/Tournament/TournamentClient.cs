@@ -15,6 +15,7 @@ public class TournamentClient : IDisposable
     private readonly IShipPlacer _shipPlacer;
     private readonly IFiringStrategy _firingStrategy;
     private string? _playerId;
+    private string? _authSecret;
     private string? _currentGameId;
     private bool _disposed;
 
@@ -31,18 +32,30 @@ public class TournamentClient : IDisposable
     {
         try
         {
-            // Step 1: Register player via HTTP
-            _logger.LogInformation("Registering player: {BotName}", _config.BotName);
-            await RegisterPlayerAsync(cancellationToken).ConfigureAwait(false);
+            // Step 1: Try to load existing credentials
+            var existingCredentials = await PlayerCredentials.LoadAsync(_config.BotName).ConfigureAwait(false);
+            if (existingCredentials != null)
+            {
+                _playerId = existingCredentials.PlayerId;
+                _authSecret = existingCredentials.AuthSecret;
+                _logger.LogInformation("Loaded existing credentials for: {BotName} (Player ID: {PlayerId})",
+                    _config.BotName, _playerId);
+            }
+            else
+            {
+                // Step 2: Register player via HTTP
+                _logger.LogInformation("Registering new player: {BotName}", _config.BotName);
+                await RegisterPlayerAsync(cancellationToken).ConfigureAwait(false);
+            }
 
-            // Step 2: Join tournament if specified
+            // Step 3: Join tournament if specified
             if (!string.IsNullOrEmpty(_config.TournamentId))
             {
                 _logger.LogInformation("Joining tournament: {TournamentId}", _config.TournamentId);
                 await JoinTournamentAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            // Step 3: Create and connect WebSocket with player ID
+            // Step 4: Create and connect WebSocket with player ID
             _logger.LogInformation("Connecting to WebSocket...");
             var wsUrl = _config.GetWebSocketUrl(_playerId!);
             _webSocketClient = new TournamentWebSocketClient(wsUrl, _config.MaxReconnectAttempts, _logger);
@@ -78,7 +91,24 @@ public class TournamentClient : IDisposable
         }
 
         _playerId = registration.Player.PlayerId;
+        _authSecret = registration.Player.AuthSecret;
+
         _logger.LogInformation("Registered player: {PlayerId}", _playerId);
+
+        if (!string.IsNullOrEmpty(_authSecret))
+        {
+            _logger.LogInformation("Received authSecret for secure API updates");
+        }
+
+        // Save credentials for reuse
+        var credentials = new PlayerCredentials
+        {
+            PlayerId = _playerId,
+            AuthSecret = _authSecret,
+            BotName = _config.BotName
+        };
+        await credentials.SaveAsync().ConfigureAwait(false);
+        _logger.LogInformation("Saved player credentials to {Path}", PlayerCredentials.GetCredentialsPath());
     }
 
     private async Task JoinTournamentAsync(CancellationToken cancellationToken)
