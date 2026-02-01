@@ -1,7 +1,27 @@
 using Microsoft.Extensions.Logging;
+using OpenTelemetry;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using SharpShooter;
 using SharpShooter.Tournament;
 using SharpShooter.Tournament.Models;
+
+// Configure OpenTelemetry
+var botName = Environment.GetEnvironmentVariable("BOT_NAME") ?? "LinqToVictory";
+var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
+    ?? "http://otel-collector.battleships.svc.cluster.local:4317";
+
+using var tracerProvider = Sdk.CreateTracerProviderBuilder()
+    .SetResourceBuilder(ResourceBuilder.CreateDefault()
+        .AddService(serviceName: botName, serviceVersion: "1.0.0"))
+    .AddSource(botName)
+    .AddHttpClientInstrumentation()
+    .AddOtlpExporter(options =>
+    {
+        options.Endpoint = new Uri(otlpEndpoint);
+        options.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.Grpc;
+    })
+    .Build();
 
 var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
 

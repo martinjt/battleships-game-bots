@@ -35,12 +35,13 @@ public class TournamentWebSocketClient : IDisposable
         var attempt = 0;
         var delay = TimeSpan.FromSeconds(1);
 
-        while (attempt < _maxReconnectAttempts && !cancellationToken.IsCancellationRequested)
+        // Keep trying to connect indefinitely
+        while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
                 attempt++;
-                _logger.LogInformation("Connecting to WebSocket (attempt {Attempt}/{Max})...", attempt, _maxReconnectAttempts);
+                _logger.LogInformation("Connecting to WebSocket (attempt {Attempt})...", attempt);
 
                 _webSocket?.Dispose();
                 _webSocket = new ClientWebSocket();
@@ -48,6 +49,10 @@ public class TournamentWebSocketClient : IDisposable
                 await _webSocket.ConnectAsync(_webSocketUri, cancellationToken).ConfigureAwait(false);
 
                 _logger.LogInformation("WebSocket connected successfully");
+
+                // Reset delay on successful connection
+                attempt = 0;
+                delay = TimeSpan.FromSeconds(1);
 
                 // Start receive loop
                 _receiveLoopCts = new CancellationTokenSource();
@@ -58,23 +63,19 @@ public class TournamentWebSocketClient : IDisposable
                     await Connected.Invoke().ConfigureAwait(false);
                 }
 
-                return;
+                // Wait for receive loop to complete (disconnection)
+                await _receiveLoopTask.ConfigureAwait(false);
+
+                // If we get here, we disconnected - try to reconnect
+                _logger.LogInformation("Disconnected, will attempt to reconnect...");
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _logger.LogWarning(ex, "WebSocket connection attempt {Attempt} failed", attempt);
+                _logger.LogInformation("Retrying in {Delay} seconds...", delay.TotalSeconds);
 
-                if (attempt < _maxReconnectAttempts)
-                {
-                    _logger.LogInformation("Retrying in {Delay} seconds...", delay.TotalSeconds);
-                    await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                    delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, 16)); // Exponential backoff, max 16 seconds
-                }
-                else
-                {
-                    _logger.LogError("Max reconnection attempts reached");
-                    throw;
-                }
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+                delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, 30)); // Exponential backoff, max 30 seconds
             }
         }
 
