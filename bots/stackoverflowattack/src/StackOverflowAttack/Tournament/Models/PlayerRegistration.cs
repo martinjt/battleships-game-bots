@@ -4,8 +4,8 @@ namespace StackOverflowAttack.Tournament.Models;
 
 public class PlayerRegistrationRequest
 {
-    [JsonPropertyName("displayName")]
-    public string DisplayName { get; set; } = string.Empty;
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
 
     [JsonPropertyName("maxConcurrentGames")]
     public int MaxConcurrentGames { get; set; } = 5;

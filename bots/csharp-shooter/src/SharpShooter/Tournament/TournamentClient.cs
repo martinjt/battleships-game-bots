@@ -80,7 +80,7 @@ public class TournamentClient : IDisposable
 
     private async Task RegisterPlayerAsync(CancellationToken cancellationToken)
     {
-        var request = new PlayerRegistrationRequest { DisplayName = _config.BotName };
+        var request = new PlayerRegistrationRequest { Name = _config.BotName };
         var response = await _httpClient.PostAsJsonAsync("/api/v1/players", request, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
 
@@ -209,7 +209,7 @@ public class TournamentClient : IDisposable
             GameId = request.Request.GameId,
             Response = new PlaceShipsResponseData
             {
-                Ships = shipPlacements
+                Placements = shipPlacements
             }
         };
 
@@ -236,7 +236,10 @@ public class TournamentClient : IDisposable
         var response = new FireResponsePayload
         {
             GameId = request.GameId,
-            Target = new Position { Col = shot.X, Row = shot.Y }
+            Response = new FireResponseData
+            {
+                Target = new Position { Col = shot.X, Row = shot.Y }
+            }
         };
 
         await _webSocketClient.SendMessageAsync(MessageTypes.FireResponse, response, cancellationToken).ConfigureAwait(false);

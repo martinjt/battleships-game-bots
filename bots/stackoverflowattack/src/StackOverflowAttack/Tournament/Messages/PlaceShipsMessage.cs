@@ -28,8 +28,8 @@ public class PlaceShipsResponsePayload
 
 public class PlaceShipsResponseData
 {
-    [JsonPropertyName("ships")]
-    public List<ShipPlacement> Ships { get; set; } = new();
+    [JsonPropertyName("placements")]
+    public List<ShipPlacement> Placements { get; set; } = new();
 }
 
 public class ShipPlacement
