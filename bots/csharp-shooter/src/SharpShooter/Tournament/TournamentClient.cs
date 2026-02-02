@@ -243,7 +243,7 @@ public class TournamentClient : IDisposable
             return;
         }
 
-        _logger.LogInformation("Firing shot for game: {GameId}", request.GameId);
+        _logger.LogInformation("Firing shot for game: {GameId}", request.Request.GameId);
 
         // Use firing strategy to get next shot
         var shot = _firingStrategy.GetNextShot();
@@ -252,7 +252,7 @@ public class TournamentClient : IDisposable
         // Send response
         var response = new FireResponsePayload
         {
-            GameId = request.GameId,
+            GameId = request.Request.GameId,
             Response = new FireResponseData
             {
                 Target = new Position { Col = shot.X, Row = shot.Y }

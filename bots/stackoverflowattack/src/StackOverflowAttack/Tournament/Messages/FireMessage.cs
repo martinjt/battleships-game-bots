@@ -4,6 +4,12 @@ namespace StackOverflowAttack.Tournament.Messages;
 
 public class FireRequestPayload
 {
+    [JsonPropertyName("request")]
+    public FireRequest Request { get; set; } = new();
+}
+
+public class FireRequest
+{
     [JsonPropertyName("gameId")]
     public string GameId { get; set; } = string.Empty;
 }
