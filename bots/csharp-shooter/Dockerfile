@@ -14,10 +14,10 @@ COPY src/ src/
 COPY tests/ tests/
 
 # Run tests
-RUN dotnet test tests/SharpShooter.Tests/SharpShooter.Tests.csproj --configuration Release --no-restore
+RUN dotnet test tests/SharpShooter.Tests/SharpShooter.Tests.csproj --configuration Release
 
 # Build and publish
-RUN dotnet publish src/SharpShooter/SharpShooter.csproj -c Release -o /app/publish --no-restore
+RUN dotnet publish src/SharpShooter/SharpShooter.csproj -c Release -o /app/publish
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine

@@ -14,6 +14,7 @@ public class WebSocketMessage<T>
 public static class MessageTypes
 {
     public const string Register = "REGISTER";
+    public const string Registered = "REGISTERED";
     public const string PlaceShipsRequest = "PLACE_SHIPS_REQUEST";
     public const string PlaceShipsResponse = "PLACE_SHIPS_RESPONSE";
     public const string FireRequest = "FIRE_REQUEST";

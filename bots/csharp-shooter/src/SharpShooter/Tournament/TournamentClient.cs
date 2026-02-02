@@ -129,18 +129,10 @@ public class TournamentClient : IDisposable
         _logger.LogInformation("Joined tournament successfully");
     }
 
-    private async Task OnConnectedAsync()
+    private Task OnConnectedAsync()
     {
-        if (string.IsNullOrEmpty(_playerId))
-        {
-            _logger.LogError("Cannot register WebSocket: Player ID is null");
-            return;
-        }
-
-        _logger.LogInformation("Registering with WebSocket...");
-        var payload = new RegisterPayload { PlayerId = _playerId };
-        await _webSocketClient.SendMessageAsync(MessageTypes.Register, payload).ConfigureAwait(false);
-        _logger.LogInformation("Successfully registered with WebSocket");
+        _logger.LogInformation("WebSocket connected, waiting for game requests...");
+        return Task.CompletedTask;
     }
 
     private Task OnDisconnectedAsync()
@@ -157,6 +149,10 @@ public class TournamentClient : IDisposable
 
             switch (messageType)
             {
+                case MessageTypes.Registered:
+                    _logger.LogInformation("Successfully registered with WebSocket");
+                    break;
+
                 case MessageTypes.PlaceShipsRequest:
                     await HandlePlaceShipsRequestAsync(payload, cts.Token).ConfigureAwait(false);
                     break;
@@ -191,13 +187,13 @@ public class TournamentClient : IDisposable
     private async Task HandlePlaceShipsRequestAsync(JsonElement payload, CancellationToken cancellationToken)
     {
         var request = JsonSerializer.Deserialize<PlaceShipsRequestPayload>(payload);
-        if (request == null)
+        if (request == null || request.Request == null)
         {
             _logger.LogError("Failed to deserialize PlaceShipsRequest");
             return;
         }
 
-        _currentGameId = request.GameId;
+        _currentGameId = request.Request.GameId;
         _logger.LogInformation("Placing ships for game: {GameId}", _currentGameId);
 
         // Use ship placer to generate placement
@@ -210,8 +206,11 @@ public class TournamentClient : IDisposable
         // Send response
         var response = new PlaceShipsResponsePayload
         {
-            GameId = request.GameId,
-            Ships = shipPlacements
+            GameId = request.Request.GameId,
+            Response = new PlaceShipsResponseData
+            {
+                Ships = shipPlacements
+            }
         };
 
         await _webSocketClient.SendMessageAsync(MessageTypes.PlaceShipsResponse, response, cancellationToken).ConfigureAwait(false);
@@ -237,7 +236,7 @@ public class TournamentClient : IDisposable
         var response = new FireResponsePayload
         {
             GameId = request.GameId,
-            Target = new Position { X = shot.X, Y = shot.Y }
+            Target = new Position { Col = shot.X, Row = shot.Y }
         };
 
         await _webSocketClient.SendMessageAsync(MessageTypes.FireResponse, response, cancellationToken).ConfigureAwait(false);
@@ -286,15 +285,13 @@ public class TournamentClient : IDisposable
     private static ShipPlacement ConvertToShipPlacement(Ship ship)
     {
         var start = ship.StartPosition;
-        var end = ship.Orientation == Orientation.Horizontal
-            ? new Coordinate(start.X + ship.Length - 1, start.Y)
-            : new Coordinate(start.X, start.Y + ship.Length - 1);
+        var orientation = ship.Orientation == Orientation.Horizontal ? "H" : "V";
 
         return new ShipPlacement
         {
-            ShipType = ship.Name,
-            Start = new Position { X = start.X, Y = start.Y },
-            End = new Position { X = end.X, Y = end.Y }
+            TypeId = ship.Name.ToUpperInvariant(),
+            Start = new Position { Col = start.X, Row = start.Y },
+            Orientation = orientation
         };
     }
 

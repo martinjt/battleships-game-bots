@@ -4,8 +4,17 @@ namespace SharpShooter.Tournament.Messages;
 
 public class PlaceShipsRequestPayload
 {
+    [JsonPropertyName("request")]
+    public PlaceShipsRequestData Request { get; set; } = new();
+}
+
+public class PlaceShipsRequestData
+{
     [JsonPropertyName("gameId")]
     public string GameId { get; set; } = string.Empty;
+
+    [JsonPropertyName("playerId")]
+    public string PlayerId { get; set; } = string.Empty;
 }
 
 public class PlaceShipsResponsePayload
@@ -13,27 +22,33 @@ public class PlaceShipsResponsePayload
     [JsonPropertyName("gameId")]
     public string GameId { get; set; } = string.Empty;
 
+    [JsonPropertyName("response")]
+    public PlaceShipsResponseData Response { get; set; } = new();
+}
+
+public class PlaceShipsResponseData
+{
     [JsonPropertyName("ships")]
     public List<ShipPlacement> Ships { get; set; } = new();
 }
 
 public class ShipPlacement
 {
-    [JsonPropertyName("shipType")]
-    public string ShipType { get; set; } = string.Empty;
+    [JsonPropertyName("typeId")]
+    public string TypeId { get; set; } = string.Empty;
 
     [JsonPropertyName("start")]
     public Position Start { get; set; } = new();
 
-    [JsonPropertyName("end")]
-    public Position End { get; set; } = new();
+    [JsonPropertyName("orientation")]
+    public string Orientation { get; set; } = string.Empty;
 }
 
 public class Position
 {
-    [JsonPropertyName("x")]
-    public int X { get; set; }
+    [JsonPropertyName("col")]
+    public int Col { get; set; }
 
-    [JsonPropertyName("y")]
-    public int Y { get; set; }
+    [JsonPropertyName("row")]
+    public int Row { get; set; }
 }
