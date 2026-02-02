@@ -203,6 +203,12 @@ public class TournamentClient : IDisposable
 
         // Convert to API format
         var shipPlacements = ships.Select(ConvertToShipPlacement).ToList();
+        _logger.LogInformation("Converted {Count} ships to placements", shipPlacements.Count);
+        foreach (var placement in shipPlacements)
+        {
+            _logger.LogInformation("  Ship: {TypeId} at ({Col},{Row}) facing {Orientation}",
+                placement.TypeId, placement.Start.Col, placement.Start.Row, placement.Orientation);
+        }
 
         // Send response
         var response = new PlaceShipsResponsePayload
@@ -213,6 +219,14 @@ public class TournamentClient : IDisposable
                 Placements = shipPlacements
             }
         };
+
+        // Debug: Log the JSON being sent
+        var debugJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        });
+        _logger.LogInformation("Sending placement response JSON:\n{Json}", debugJson);
 
         await _webSocketClient.SendMessageAsync(MessageTypes.PlaceShipsResponse, response, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("Ship placement sent");
