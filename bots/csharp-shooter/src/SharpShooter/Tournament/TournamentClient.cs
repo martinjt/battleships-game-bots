@@ -233,6 +233,9 @@ public class TournamentClient : IDisposable
 
     private async Task HandleFireRequestAsync(JsonElement payload, CancellationToken cancellationToken)
     {
+        // Debug: Log the raw payload
+        _logger.LogInformation("Received FIRE_REQUEST payload: {Payload}", payload.GetRawText());
+
         var request = JsonSerializer.Deserialize<FireRequestPayload>(payload);
         if (request == null)
         {
@@ -256,7 +259,16 @@ public class TournamentClient : IDisposable
             }
         };
 
+        // Debug: Log the JSON being sent
+        var debugJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        });
+        _logger.LogInformation("Sending fire response JSON:\n{Json}", debugJson);
+
         await _webSocketClient.SendMessageAsync(MessageTypes.FireResponse, response, cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("Fire response sent");
     }
 
     private Task HandleGameUpdateAsync(JsonElement payload)
