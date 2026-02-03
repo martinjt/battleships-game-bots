@@ -138,13 +138,91 @@ aws ecr get-login-password --region us-east-1 | \
 
 ## Testing After Deployment
 
-1. Create a tournament with LinqToVictory and StackOverflowAttack
+1. Create a tournament with LinqToVictory and StackOverflowAttack:
+   ```bash
+   # Create tournament
+   TOURNAMENT_ID=$(curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Test Deployment - '$(date +%Y%m%d-%H%M%S)'", "config": {"roundCount": 1}}' \
+     | jq -r '.tournamentId')
+
+   echo "Created tournament: $TOURNAMENT_ID"
+
+   # Get player IDs
+   LINQ_ID=$(curl -s https://battleships.devrel.hny.wtf/api/v1/players | \
+     jq -r '.[] | select(.displayName == "LinqToVictory") | .playerId')
+   STACK_ID=$(curl -s https://battleships.devrel.hny.wtf/api/v1/players | \
+     jq -r '.[] | select(.displayName == "StackOverflowAttack") | .playerId')
+
+   # Add players to tournament
+   curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID/players \
+     -H "Content-Type: application/json" \
+     -d "{\"playerId\": \"$LINQ_ID\"}"
+   curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID/players \
+     -H "Content-Type: application/json" \
+     -d "{\"playerId\": \"$STACK_ID\"}"
+
+   # Start tournament
+   curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID/start \
+     -H "Content-Type: application/json"
+   ```
+
 2. Monitor logs for ship placement debug output:
    ```bash
    kubectl logs -f deployment/battleships-csharp-shooter -n battleships
    ```
+
 3. Check Honeycomb for successful game completion
+
 4. Verify no "Missing ships" errors
+
+5. **IMPORTANT: Complete test tournaments after testing**:
+
+   After testing, always complete your test tournaments:
+
+   ```bash
+   # Check tournament state
+   curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID | \
+     jq '{state, currentRound, games: (.games | length)}'
+
+   # Complete the tournament (moves to FINISHED state)
+   curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID/complete
+
+   # Verify it's finished
+   curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID | \
+     jq '{state, finishedAt}'
+   ```
+
+   **Bulk cleanup** - Complete all stuck test tournaments:
+
+   ```bash
+   # List tournaments requiring cleanup
+   echo "Tournaments in non-FINISHED state:"
+   curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments | \
+     jq -r '.[] | select(.state == "CREATED" or .state == "RUNNING") |
+            "\(.tournamentId) - \(.name) - \(.state)"'
+
+   # Complete all test tournaments
+   curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments | \
+     jq -r '.[] | select(.name | test("Test|Debug|Fix")) |
+            select(.state == "CREATED" or .state == "RUNNING") | .tournamentId' | \
+     while read tid; do
+       echo "Completing tournament: $tid"
+       curl -s -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$tid/complete | \
+         jq -r '.message'
+     done
+
+   # Verify all tournaments are finished
+   INCOMPLETE=$(curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments | \
+     jq '.[] | select(.state == "CREATED" or .state == "RUNNING") | .tournamentId' | wc -l)
+   echo "Incomplete tournaments remaining: $INCOMPLETE"
+   ```
+
+   **Why this matters**:
+   - Tournaments stuck in CREATED/RUNNING state accumulate and cause server issues
+   - Stuck tournaments can prevent new tournaments from starting
+   - Always complete test tournaments to keep the system healthy
+   - A clean system has all tournaments in FINISHED state
 
 ## Debug Logging
 

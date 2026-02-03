@@ -246,6 +246,31 @@ public class TournamentClient : IDisposable
 
         _logger.LogInformation("Firing shot for game: {GameId}", request.Request.GameId);
 
+        // Update firing strategy with game state from opponent view
+        if (request.Request.OpponentView?.Shots != null && _firingStrategy is ProbabilityDensityFiringStrategy strategy)
+        {
+            _logger.LogInformation("Processing {Count} previous shots", request.Request.OpponentView.Shots.Count);
+            foreach (var previousShot in request.Request.OpponentView.Shots)
+            {
+                var coord = new Coordinate(previousShot.Col, previousShot.Row);
+                if (previousShot.Result.Equals("Hit", StringComparison.OrdinalIgnoreCase))
+                {
+                    strategy.RecordHit(coord);
+                }
+                else if (previousShot.Result.Equals("Miss", StringComparison.OrdinalIgnoreCase))
+                {
+                    strategy.RecordMiss(coord);
+                }
+            }
+        }
+
+        // Check if last shot resulted in a sunk ship
+        if (request.Request.LastShot?.SunkShipTypeId != null && _firingStrategy is ProbabilityDensityFiringStrategy sunkStrategy)
+        {
+            _logger.LogInformation("Ship sunk: {ShipTypeId}", request.Request.LastShot.SunkShipTypeId);
+            sunkStrategy.RecordSunk(request.Request.LastShot.SunkShipTypeId);
+        }
+
         // Use firing strategy to get next shot
         var shot = _firingStrategy.GetNextShot();
         _logger.LogInformation("Fired at: ({X}, {Y})", shot.X, shot.Y);
