@@ -56,17 +56,25 @@ public class ProbabilityDensityFiringStrategy : IFiringStrategy
 
     public void RecordHit(Coordinate coordinate)
     {
-        _hits.Add(coordinate);
-        _lastHit = coordinate;
+        // Add to fired shots to ensure we don't fire here again
+        _firedShots.Add(coordinate);
 
-        // Switch to target mode and add adjacent cells to target queue
-        _inTargetMode = true;
-        AddAdjacentCellsToTargetQueue(coordinate);
+        // Only process new hits to avoid duplicate target queue entries
+        if (!_hits.Contains(coordinate))
+        {
+            _hits.Add(coordinate);
+            _lastHit = coordinate;
+
+            // Switch to target mode and add adjacent cells to target queue
+            _inTargetMode = true;
+            AddAdjacentCellsToTargetQueue(coordinate);
+        }
     }
 
     public void RecordMiss(Coordinate coordinate)
     {
-        // Already tracked in _firedShots
+        // Add to fired shots to ensure we don't fire here again
+        _firedShots.Add(coordinate);
     }
 
     public void RecordSunk(string shipName)
