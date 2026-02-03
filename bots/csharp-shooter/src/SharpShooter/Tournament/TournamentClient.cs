@@ -12,8 +12,9 @@ public class TournamentClient : IDisposable
     private TournamentWebSocketClient? _webSocketClient;
     private readonly ILogger _logger;
     private readonly TournamentConfig _config;
+    private readonly OpponentDetector _opponentDetector;
     private readonly IShipPlacer _shipPlacer;
-    private readonly IFiringStrategy _firingStrategy;
+    private readonly AdaptiveFiringStrategy _firingStrategy;
     private string? _playerId;
     private string? _authSecret;
     private string? _currentGameId;
@@ -24,8 +25,9 @@ public class TournamentClient : IDisposable
         _config = config;
         _logger = logger;
         _httpClient = new HttpClient { BaseAddress = new Uri(config.ApiUrl) };
-        _shipPlacer = new RandomShipPlacer();
-        _firingStrategy = new LeftToRightFiringStrategy();
+        _opponentDetector = new OpponentDetector();
+        _shipPlacer = new AdaptiveShipPlacer(_opponentDetector);
+        _firingStrategy = new AdaptiveFiringStrategy(_opponentDetector);
     }
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
@@ -286,13 +288,18 @@ public class TournamentClient : IDisposable
         if (!string.IsNullOrEmpty(update.Winner))
         {
             _logger.LogInformation("Game finished - Winner: {Winner}", update.Winner);
+
+            // Log detected opponent strategy for analysis
+            var detectedStrategy = _opponentDetector.GetDetectedStrategy();
+            _logger.LogInformation("Opponent strategy was detected as: {Strategy}", detectedStrategy);
         }
 
-        // Reset firing strategy for new game
+        // Reset strategies for new game
         if (update.Status == "started" || update.Status == "STARTED")
         {
-            _logger.LogInformation("New game started, resetting firing strategy");
+            _logger.LogInformation("New game started, resetting adaptive strategies");
             _firingStrategy.Reset();
+            _opponentDetector.Reset();
         }
 
         return Task.CompletedTask;
