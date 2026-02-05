@@ -4,7 +4,7 @@ namespace HeatSeeker.Tournament.Models;
 
 public class PlayerRegistrationRequest
 {
-    [JsonPropertyName("name")]
+    [JsonPropertyName("displayName")]
     public string Name { get; set; } = string.Empty;
 
     [JsonPropertyName("maxConcurrentGames")]
