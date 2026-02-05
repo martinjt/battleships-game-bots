@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: diagonaldominion-data
+  namespace: battleships
+  labels:
+    app: battleships-diagonaldominion
+    bot: diagonaldominion
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+  storageClassName: gp2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: battleships-diagonaldominion
+  namespace: battleships
+  labels:
+    app: battleships-diagonaldominion
+    bot: diagonaldominion
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: battleships-diagonaldominion
+  template:
+    metadata:
+      labels:
+        app: battleships-diagonaldominion
+        bot: diagonaldominion
+    spec:
+      volumes:
+      - name: bot-data
+        persistentVolumeClaim:
+          claimName: diagonaldominion-data
+      containers:
+      - name: diagonaldominion
+        image: IMAGE_PLACEHOLDER
+        imagePullPolicy: Always
+        volumeMounts:
+        - name: bot-data
+          mountPath: /data
+        env:
+        - name: TOURNAMENT_MODE
+          value: "true"
+        - name: BOT_NAME
+          valueFrom:
+            secretKeyRef:
+              name: diagonaldominion-config
+              key: bot-name
+        - name: GAME_API_URL
+          value: "https://battleships.devrel.hny.wtf"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        # Liveness probe to restart if bot crashes
+        livenessProbe:
+          exec:
+            command:
+            - pgrep
+            - dotnet
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 3
+        # Readiness probe (bot is ready when process is running)
+        readinessProbe:
+          exec:
+            command:
+            - pgrep
+            - dotnet
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+      restartPolicy: Always
+      # Graceful shutdown
+      terminationGracePeriodSeconds: 30
+---
+# Optional: Service for metrics/monitoring (if needed in future)
+apiVersion: v1
+kind: Service
+metadata:
+  name: battleships-diagonaldominion
+  namespace: battleships
+  labels:
+    app: battleships-diagonaldominion
+spec:
+  selector:
+    app: battleships-diagonaldominion
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
