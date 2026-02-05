@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: csharp-shooter-data
-  namespace: battleships
+  namespace: battleships-bots
   labels:
     app: battleships-csharp-shooter
     bot: csharp-shooter
@@ -18,7 +18,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: battleships-csharp-shooter
-  namespace: battleships
+  namespace: battleships-bots
   labels:
     app: battleships-csharp-shooter
     bot: csharp-shooter
@@ -89,7 +89,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: battleships-csharp-shooter
-  namespace: battleships
+  namespace: battleships-bots
   labels:
     app: battleships-csharp-shooter
 spec:

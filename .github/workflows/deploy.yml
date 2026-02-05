@@ -102,12 +102,12 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           # Check if deployment exists
-          if kubectl get deployment battleships-${{ matrix.bot }} -n battleships 2>/dev/null; then
+          if kubectl get deployment battleships-${{ matrix.bot }} -n battleships-bots 2>/dev/null; then
             # Update existing deployment
             kubectl set image deployment/battleships-${{ matrix.bot }} \
               ${{ matrix.bot }}=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
-              -n battleships
-            kubectl rollout status deployment/battleships-${{ matrix.bot }} -n battleships
+              -n battleships-bots
+            kubectl rollout status deployment/battleships-${{ matrix.bot }} -n battleships-bots
           else
             # Create new deployment from manifest
             if [ -f k8s/base/bots/${{ matrix.bot }}.yaml ]; then
@@ -119,11 +119,11 @@ jobs:
               echo "Creating basic deployment..."
               kubectl create deployment battleships-${{ matrix.bot }} \
                 --image=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
-                -n battleships
+                -n battleships-bots
             fi
           fi
 
       - name: Verify deployment
         run: |
-          kubectl get deployment battleships-${{ matrix.bot }} -n battleships
-          kubectl get pods -l app=battleships-${{ matrix.bot }} -n battleships
+          kubectl get deployment battleships-${{ matrix.bot }} -n battleships-bots
+          kubectl get pods -l app=battleships-${{ matrix.bot }} -n battleships-bots
