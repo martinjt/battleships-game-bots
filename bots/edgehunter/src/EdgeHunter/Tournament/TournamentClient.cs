@@ -13,7 +13,7 @@ public class TournamentClient : IDisposable
     private readonly ILogger _logger;
     private readonly TournamentConfig _config;
     private readonly IShipPlacer _shipPlacer;
-    private readonly IFiringStrategy _firingStrategy;
+    private readonly Dictionary<string, IFiringStrategy> _gameStrategies = new();
     private string? _playerId;
     private string? _authSecret;
     private string? _currentGameId;
@@ -25,7 +25,17 @@ public class TournamentClient : IDisposable
         _logger = logger;
         _httpClient = new HttpClient { BaseAddress = new Uri(config.ApiUrl) };
         _shipPlacer = new CenterClusterShipPlacer();
-        _firingStrategy = new PerimeterInFiringStrategy();
+    }
+
+    private IFiringStrategy GetOrCreateStrategy(string gameId)
+    {
+        if (!_gameStrategies.TryGetValue(gameId, out var strategy))
+        {
+            strategy = new PerimeterInFiringStrategy();
+            _gameStrategies[gameId] = strategy;
+            _logger.LogInformation("Created new firing strategy for game: {GameId}", gameId);
+        }
+        return strategy;
     }
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
@@ -212,14 +222,43 @@ public class TournamentClient : IDisposable
             return;
         }
 
-        _logger.LogInformation("Firing shot for game: {GameId}", request.Request.GameId);
+        var gameId = request.Request.GameId;
+        _logger.LogInformation("Firing shot for game: {GameId}", gameId);
 
-        var shot = _firingStrategy.GetNextShot();
+        // Get or create per-game strategy
+        var strategy = GetOrCreateStrategy(gameId);
+
+        // Update strategy with game state from opponent view
+        if (request.Request.OpponentView?.Shots != null)
+        {
+            _logger.LogInformation("Processing {Count} previous shots", request.Request.OpponentView.Shots.Count);
+            foreach (var previousShot in request.Request.OpponentView.Shots)
+            {
+                var coord = new Coordinate(previousShot.Col, previousShot.Row);
+                if (previousShot.Result.Equals("Hit", StringComparison.OrdinalIgnoreCase))
+                {
+                    strategy.RecordHit(coord);
+                }
+                else if (previousShot.Result.Equals("Miss", StringComparison.OrdinalIgnoreCase))
+                {
+                    strategy.RecordMiss(coord);
+                }
+            }
+        }
+
+        // Check if last shot resulted in a sunk ship
+        if (request.Request.LastShot?.SunkShipTypeId != null)
+        {
+            _logger.LogInformation("Ship sunk: {ShipTypeId}", request.Request.LastShot.SunkShipTypeId);
+            strategy.RecordSunk();
+        }
+
+        var shot = strategy.GetNextShot();
         _logger.LogInformation("Fired at: ({X}, {Y})", shot.X, shot.Y);
 
         var response = new FireResponsePayload
         {
-            GameId = request.Request.GameId,
+            GameId = gameId,
             Response = new FireResponseData
             {
                 Target = new Position { Col = shot.X, Row = shot.Y }
@@ -245,12 +284,11 @@ public class TournamentClient : IDisposable
         if (!string.IsNullOrEmpty(update.Winner))
         {
             _logger.LogInformation("Game finished - Winner: {Winner}", update.Winner);
-        }
-
-        if (update.Status == "started" || update.Status == "STARTED")
-        {
-            _logger.LogInformation("New game started, resetting strategies");
-            _firingStrategy.Reset();
+            // Clean up strategy for finished game
+            if (!string.IsNullOrEmpty(update.GameId) && _gameStrategies.Remove(update.GameId))
+            {
+                _logger.LogInformation("Removed strategy for finished game: {GameId}", update.GameId);
+            }
         }
 
         return Task.CompletedTask;
