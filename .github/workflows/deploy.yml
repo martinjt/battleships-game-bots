@@ -96,18 +96,36 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
+      - name: Ensure namespace exists
+        run: |
+          kubectl apply -f k8s/base/bots/namespace.yaml
+
+      - name: Ensure bot secret exists
+        run: |
+          # Copy secret from battleships namespace if it exists there but not in battleships-bots
+          if ! kubectl get secret ${{ matrix.bot }}-config -n battleships-bots 2>/dev/null; then
+            if kubectl get secret ${{ matrix.bot }}-config -n battleships 2>/dev/null; then
+              echo "Copying secret from battleships to battleships-bots namespace..."
+              kubectl get secret ${{ matrix.bot }}-config -n battleships -o yaml | \
+                sed 's/namespace: battleships/namespace: battleships-bots/' | \
+                kubectl apply -f -
+            else
+              echo "Warning: No secret found for ${{ matrix.bot }}-config"
+            fi
+          fi
+
       - name: Deploy to EKS
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Check if deployment exists
-          if kubectl get deployment battleships-${{ matrix.bot }} -n battleships 2>/dev/null; then
+          # Check if deployment exists in new namespace
+          if kubectl get deployment battleships-${{ matrix.bot }} -n battleships-bots 2>/dev/null; then
             # Update existing deployment
             kubectl set image deployment/battleships-${{ matrix.bot }} \
               ${{ matrix.bot }}=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
-              -n battleships
-            kubectl rollout status deployment/battleships-${{ matrix.bot }} -n battleships
+              -n battleships-bots
+            kubectl rollout status deployment/battleships-${{ matrix.bot }} -n battleships-bots
           else
             # Create new deployment from manifest
             if [ -f k8s/base/bots/${{ matrix.bot }}.yaml ]; then
@@ -119,11 +137,21 @@ jobs:
               echo "Creating basic deployment..."
               kubectl create deployment battleships-${{ matrix.bot }} \
                 --image=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
-                -n battleships
+                -n battleships-bots
             fi
+          fi
+
+      - name: Delete old deployment from battleships namespace
+        run: |
+          # Clean up old deployment from battleships namespace if it exists
+          if kubectl get deployment battleships-${{ matrix.bot }} -n battleships 2>/dev/null; then
+            echo "Deleting old deployment from battleships namespace..."
+            kubectl delete deployment battleships-${{ matrix.bot }} -n battleships --ignore-not-found
+            kubectl delete service battleships-${{ matrix.bot }} -n battleships --ignore-not-found
+            kubectl delete pvc ${{ matrix.bot }}-data -n battleships --ignore-not-found
           fi
 
       - name: Verify deployment
         run: |
-          kubectl get deployment battleships-${{ matrix.bot }} -n battleships
-          kubectl get pods -l app=battleships-${{ matrix.bot }} -n battleships
+          kubectl get deployment battleships-${{ matrix.bot }} -n battleships-bots
+          kubectl get pods -l app=battleships-${{ matrix.bot }} -n battleships-bots

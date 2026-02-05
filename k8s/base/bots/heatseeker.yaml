@@ -2,7 +2,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: heatseeker-data
-  namespace: battleships
+  namespace: battleships-bots
   labels:
     app: battleships-heatseeker
     bot: heatseeker
@@ -18,7 +18,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: battleships-heatseeker
-  namespace: battleships
+  namespace: battleships-bots
   labels:
     app: battleships-heatseeker
     bot: heatseeker
@@ -85,7 +85,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: battleships-heatseeker
-  namespace: battleships
+  namespace: battleships-bots
   labels:
     app: battleships-heatseeker
 spec:
