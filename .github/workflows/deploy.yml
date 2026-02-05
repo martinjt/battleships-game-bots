@@ -96,10 +96,6 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
-      - name: Ensure namespace exists
-        run: |
-          kubectl apply -f k8s/base/bots/namespace.yaml
-
       - name: Ensure bot secret exists
         run: |
           # Copy secret from battleships namespace if it exists there but not in battleships-bots
