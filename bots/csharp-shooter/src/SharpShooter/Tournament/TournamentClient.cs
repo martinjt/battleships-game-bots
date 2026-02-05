@@ -12,9 +12,9 @@ public class TournamentClient : IDisposable
     private TournamentWebSocketClient? _webSocketClient;
     private readonly ILogger _logger;
     private readonly TournamentConfig _config;
-    private readonly OpponentDetector _opponentDetector;
+    private readonly OpponentDetector _sharedOpponentDetector;
     private readonly IShipPlacer _shipPlacer;
-    private readonly AdaptiveFiringStrategy _firingStrategy;
+    private readonly Dictionary<string, AdaptiveFiringStrategy> _gameStrategies = new();
     private string? _playerId;
     private string? _authSecret;
     private string? _currentGameId;
@@ -25,9 +25,20 @@ public class TournamentClient : IDisposable
         _config = config;
         _logger = logger;
         _httpClient = new HttpClient { BaseAddress = new Uri(config.ApiUrl) };
-        _opponentDetector = new OpponentDetector();
-        _shipPlacer = new AdaptiveShipPlacer(_opponentDetector);
-        _firingStrategy = new AdaptiveFiringStrategy(_opponentDetector);
+        _sharedOpponentDetector = new OpponentDetector();
+        _shipPlacer = new AdaptiveShipPlacer(_sharedOpponentDetector);
+    }
+
+    private AdaptiveFiringStrategy GetOrCreateStrategy(string gameId)
+    {
+        if (!_gameStrategies.TryGetValue(gameId, out var strategy))
+        {
+            var opponentDetector = new OpponentDetector();
+            strategy = new AdaptiveFiringStrategy(opponentDetector);
+            _gameStrategies[gameId] = strategy;
+            _logger.LogInformation("Created new firing strategy for game: {GameId}", gameId);
+        }
+        return strategy;
     }
 
     public async Task RunAsync(CancellationToken cancellationToken = default)
@@ -235,9 +246,6 @@ public class TournamentClient : IDisposable
 
     private async Task HandleFireRequestAsync(JsonElement payload, CancellationToken cancellationToken)
     {
-        // Debug: Log the raw payload
-        _logger.LogInformation("Received FIRE_REQUEST payload: {Payload}", payload.GetRawText());
-
         var request = JsonSerializer.Deserialize<FireRequestPayload>(payload);
         if (request == null)
         {
@@ -245,31 +253,50 @@ public class TournamentClient : IDisposable
             return;
         }
 
-        _logger.LogInformation("Firing shot for game: {GameId}", request.Request.GameId);
+        var gameId = request.Request.GameId;
+        _logger.LogInformation("Firing shot for game: {GameId}", gameId);
 
-        // Use firing strategy to get next shot
-        var shot = _firingStrategy.GetNextShot();
+        // Get or create per-game strategy
+        var strategy = GetOrCreateStrategy(gameId);
+
+        // Update strategy with game state from opponent view
+        if (request.Request.OpponentView?.Shots != null)
+        {
+            _logger.LogInformation("Processing {Count} previous shots", request.Request.OpponentView.Shots.Count);
+            foreach (var previousShot in request.Request.OpponentView.Shots)
+            {
+                var coord = new Coordinate(previousShot.Col, previousShot.Row);
+                if (previousShot.Result.Equals("Hit", StringComparison.OrdinalIgnoreCase))
+                {
+                    strategy.RecordHit(coord);
+                }
+                else if (previousShot.Result.Equals("Miss", StringComparison.OrdinalIgnoreCase))
+                {
+                    strategy.RecordMiss(coord);
+                }
+            }
+        }
+
+        // Check if last shot resulted in a sunk ship
+        if (request.Request.LastShot?.SunkShipTypeId != null)
+        {
+            _logger.LogInformation("Ship sunk: {ShipTypeId}", request.Request.LastShot.SunkShipTypeId);
+            strategy.RecordSunk();
+        }
+
+        var shot = strategy.GetNextShot();
         _logger.LogInformation("Fired at: ({X}, {Y})", shot.X, shot.Y);
 
-        // Send response
         var response = new FireResponsePayload
         {
-            GameId = request.Request.GameId,
+            GameId = gameId,
             Response = new FireResponseData
             {
                 Target = new Position { Col = shot.X, Row = shot.Y }
             }
         };
 
-        // Debug: Log the JSON being sent
-        var debugJson = System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
-            WriteIndented = true
-        });
-        _logger.LogInformation("Sending fire response JSON:\n{Json}", debugJson);
-
-        await _webSocketClient.SendMessageAsync(MessageTypes.FireResponse, response, cancellationToken).ConfigureAwait(false);
+        await _webSocketClient!.SendMessageAsync(MessageTypes.FireResponse, response, cancellationToken).ConfigureAwait(false);
         _logger.LogInformation("Fire response sent");
     }
 
@@ -288,18 +315,11 @@ public class TournamentClient : IDisposable
         if (!string.IsNullOrEmpty(update.Winner))
         {
             _logger.LogInformation("Game finished - Winner: {Winner}", update.Winner);
-
-            // Log detected opponent strategy for analysis
-            var detectedStrategy = _opponentDetector.GetDetectedStrategy();
-            _logger.LogInformation("Opponent strategy was detected as: {Strategy}", detectedStrategy);
-        }
-
-        // Reset strategies for new game
-        if (update.Status == "started" || update.Status == "STARTED")
-        {
-            _logger.LogInformation("New game started, resetting adaptive strategies");
-            _firingStrategy.Reset();
-            _opponentDetector.Reset();
+            // Clean up strategy for finished game
+            if (!string.IsNullOrEmpty(update.GameId) && _gameStrategies.Remove(update.GameId))
+            {
+                _logger.LogInformation("Removed strategy for finished game: {GameId}", update.GameId);
+            }
         }
 
         return Task.CompletedTask;

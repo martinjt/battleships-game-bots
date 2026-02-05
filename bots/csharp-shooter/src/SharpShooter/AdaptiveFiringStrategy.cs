@@ -47,16 +47,31 @@ public class AdaptiveFiringStrategy : IFiringStrategy
     }
 
     /// <summary>
-    /// Record a hit to enable hunt mode
+    /// Record a hit to enable hunt mode (idempotent - safe to call multiple times)
     /// </summary>
     public void RecordHit(Coordinate hit)
     {
+        // Make idempotent - don't re-process if already recorded
+        if (_shotsFired.Contains(hit))
+        {
+            return;
+        }
+
+        _shotsFired.Add(hit);
         _inHuntMode = true;
         _lastHit = hit;
         _currentShipHits.Add(hit);
 
         // Queue adjacent cells for testing
         QueueAdjacentCells(hit);
+    }
+
+    /// <summary>
+    /// Record a miss (idempotent - safe to call multiple times)
+    /// </summary>
+    public void RecordMiss(Coordinate miss)
+    {
+        _shotsFired.Add(miss);
     }
 
     /// <summary>
