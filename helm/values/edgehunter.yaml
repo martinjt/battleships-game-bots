@@ -1,0 +1,6 @@
+botName: edgehunter
+
+image:
+  repository: 657166037864.dkr.ecr.us-east-1.amazonaws.com/battleships-edgehunter
+  tag: latest
+  pullPolicy: Always

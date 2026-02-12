@@ -1,0 +1,82 @@
+# Default values for battleships-bot
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Bot name (required) - used for resource naming
+botName: ""
+
+# Docker image configuration
+image:
+  repository: ""
+  tag: latest
+  pullPolicy: Always
+
+# Bot configuration
+config:
+  skirmishMode: "true"
+  gameApiUrl: "https://battleships.devrel.hny.wtf"
+  # Bot display name - read from secret
+  # secretName will be: <botName>-config
+  # secretKey: bot-name
+
+# OpenTelemetry configuration
+otel:
+  enabled: true
+  endpoint: "http://opentelemetry-collector.battleships-bots.svc.cluster.local:4317"
+
+# Resource limits
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Persistent storage
+persistence:
+  enabled: true
+  size: 100Mi
+  storageClass: gp2
+
+# Health checks
+healthChecks:
+  liveness:
+    enabled: true
+    command:
+      - pgrep
+      - dotnet
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    command:
+      - pgrep
+      - dotnet
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 5
+
+# Service configuration
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+# Pod annotations
+podAnnotations: {}
+
+# Pod labels (additional to default labels)
+podLabels: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

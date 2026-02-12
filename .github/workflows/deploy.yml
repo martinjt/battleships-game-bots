@@ -130,38 +130,20 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
-      - name: Deploy to EKS
+      - name: Deploy to EKS with Helm
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Check if deployment exists
-          if kubectl get deployment battleships-${{ matrix.bot }} -n battleships-bots 2>/dev/null; then
-            # Update existing deployment with new image
-            kubectl set image deployment/battleships-${{ matrix.bot }} \
-              ${{ matrix.bot }}=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
-              -n battleships-bots
-
-            # Ensure OTEL endpoint is configured
-            kubectl set env deployment/battleships-${{ matrix.bot }} \
-              OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector.battleships-bots.svc.cluster.local:4317 \
-              -n battleships-bots
-
-            kubectl rollout status deployment/battleships-${{ matrix.bot }} -n battleships-bots
-          else
-            # Create new deployment from manifest
-            if [ -f k8s/base/bots/${{ matrix.bot }}.yaml ]; then
-              cat k8s/base/bots/${{ matrix.bot }}.yaml | \
-              sed "s|IMAGE_PLACEHOLDER|$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG|g" | \
-              kubectl apply -f -
-            else
-              echo "Warning: No manifest found at k8s/base/bots/${{ matrix.bot }}.yaml"
-              echo "Creating basic deployment..."
-              kubectl create deployment battleships-${{ matrix.bot }} \
-                --image=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
-                -n battleships-bots
-            fi
-          fi
+          helm upgrade --install \
+            battleships-${{ matrix.bot }} \
+            ./helm/battleships-bot \
+            --namespace battleships-bots \
+            --values helm/values/${{ matrix.bot }}.yaml \
+            --set image.repository=$ECR_REGISTRY/battleships-${{ matrix.bot }} \
+            --set image.tag=$IMAGE_TAG \
+            --wait \
+            --timeout 3m
 
       - name: Verify deployment
         run: |

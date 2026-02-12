@@ -1,0 +1,18 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: battleships-{{ .Values.botName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "battleships-bot.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "battleships-bot.selectorLabels" . | nindent 4 }}
+  ports:
+  - name: metrics
+    port: {{ .Values.service.port }}
+    targetPort: {{ .Values.service.targetPort }}
+    protocol: TCP
+{{- end }}

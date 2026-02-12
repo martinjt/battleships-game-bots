@@ -1,0 +1,6 @@
+botName: csharp-shooter
+
+image:
+  repository: 657166037864.dkr.ecr.us-east-1.amazonaws.com/battleships-csharp-shooter
+  tag: latest
+  pullPolicy: Always

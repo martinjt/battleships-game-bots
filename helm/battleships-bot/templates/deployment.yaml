@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: battleships-{{ .Values.botName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "battleships-bot.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "battleships-bot.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "battleships-bot.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.persistence.enabled }}
+      volumes:
+      - name: bot-data
+        persistentVolumeClaim:
+          claimName: {{ include "battleships-bot.pvcName" . }}
+      {{- end }}
+      containers:
+      - name: {{ .Values.botName }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.persistence.enabled }}
+        volumeMounts:
+        - name: bot-data
+          mountPath: /data
+        {{- end }}
+        env:
+        - name: SKIRMISH_MODE
+          value: {{ .Values.config.skirmishMode | quote }}
+        - name: BOT_NAME
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "battleships-bot.secretName" . }}
+              key: bot-name
+        - name: GAME_API_URL
+          value: {{ .Values.config.gameApiUrl | quote }}
+        {{- if .Values.otel.enabled }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ .Values.otel.endpoint | quote }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        {{- if .Values.healthChecks.liveness.enabled }}
+        livenessProbe:
+          exec:
+            command:
+            {{- toYaml .Values.healthChecks.liveness.command | nindent 12 }}
+          initialDelaySeconds: {{ .Values.healthChecks.liveness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthChecks.liveness.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.liveness.timeoutSeconds }}
+          failureThreshold: {{ .Values.healthChecks.liveness.failureThreshold }}
+        {{- end }}
+        {{- if .Values.healthChecks.readiness.enabled }}
+        readinessProbe:
+          exec:
+            command:
+            {{- toYaml .Values.healthChecks.readiness.command | nindent 12 }}
+          initialDelaySeconds: {{ .Values.healthChecks.readiness.initialDelaySeconds }}
+          periodSeconds: {{ .Values.healthChecks.readiness.periodSeconds }}
+          timeoutSeconds: {{ .Values.healthChecks.readiness.timeoutSeconds }}
+        {{- end }}
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
