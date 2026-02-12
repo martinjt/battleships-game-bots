@@ -2,8 +2,8 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using DiagonalDominion.Tournament;
-using DiagonalDominion.Tournament.Models;
+using DiagonalDominion.Skirmish;
+using DiagonalDominion.Skirmish.Models;
 
 // Configure OpenTelemetry
 var serviceName = Environment.GetEnvironmentVariable("BOT_NAME") ?? "ShipHappens";
@@ -35,19 +35,19 @@ Console.CancelKeyPress += (sender, e) =>
 
 try
 {
-    var logger = loggerFactory.CreateLogger<TournamentClient>();
-    var config = TournamentConfig.FromEnvironment();
+    var logger = loggerFactory.CreateLogger<SkirmishClient>();
+    var config = SkirmishConfig.FromEnvironment();
 
     logger.LogInformation("Starting DiagonalDominion bot in TOURNAMENT MODE");
     logger.LogInformation("Bot Name: {BotName}", config.BotName);
     logger.LogInformation("API URL: {ApiUrl}", config.ApiUrl);
-    if (!string.IsNullOrEmpty(config.TournamentId))
+    if (!string.IsNullOrEmpty(config.SkirmishId))
     {
-        logger.LogInformation("Tournament ID: {TournamentId}", config.TournamentId);
+        logger.LogInformation("Skirmish ID: {SkirmishId}", config.SkirmishId);
     }
 
-    using var tournamentClient = new TournamentClient(config, logger);
-    await tournamentClient.RunAsync(cts.Token);
+    using var skirmishClient = new SkirmishClient(config, logger);
+    await skirmishClient.RunAsync(cts.Token);
 }
 catch (OperationCanceledException)
 {

@@ -3,8 +3,8 @@ using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using StackOverflowAttack;
-using StackOverflowAttack.Tournament;
-using StackOverflowAttack.Tournament.Models;
+using StackOverflowAttack.Skirmish;
+using StackOverflowAttack.Skirmish.Models;
 
 // Configure OpenTelemetry
 var serviceName = Environment.GetEnvironmentVariable("BOT_NAME") ?? "StackOverflowAttack";
@@ -26,7 +26,7 @@ using var tracerProvider = Sdk.CreateTracerProviderBuilder()
 var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
 
 // Check if tournament mode is enabled
-var tournamentMode = Environment.GetEnvironmentVariable("TOURNAMENT_MODE")?.ToLowerInvariant() == "true";
+var skirmishMode = Environment.GetEnvironmentVariable("SKIRMISH_MODE")?.ToLowerInvariant() == "true";
 
 // Setup cancellation for graceful shutdown
 using var cts = new CancellationTokenSource();
@@ -39,21 +39,21 @@ Console.CancelKeyPress += (sender, e) =>
 
 try
 {
-    if (tournamentMode)
+    if (skirmishMode)
     {
-        var logger = loggerFactory.CreateLogger<TournamentClient>();
-        var config = TournamentConfig.FromEnvironment();
+        var logger = loggerFactory.CreateLogger<SkirmishClient>();
+        var config = SkirmishConfig.FromEnvironment();
 
-        logger.LogInformation("Starting in TOURNAMENT MODE");
+        logger.LogInformation("Starting in SKIRMISH MODE");
         logger.LogInformation("Bot Name: {BotName}", config.BotName);
         logger.LogInformation("API URL: {ApiUrl}", config.ApiUrl);
-        if (!string.IsNullOrEmpty(config.TournamentId))
+        if (!string.IsNullOrEmpty(config.SkirmishId))
         {
-            logger.LogInformation("Tournament ID: {TournamentId}", config.TournamentId);
+            logger.LogInformation("Skirmish ID: {SkirmishId}", config.SkirmishId);
         }
 
-        using var tournamentClient = new TournamentClient(config, logger);
-        await tournamentClient.RunAsync(cts.Token);
+        using var skirmishClient = new SkirmishClient(config, logger);
+        await skirmishClient.RunAsync(cts.Token);
     }
     else
     {
