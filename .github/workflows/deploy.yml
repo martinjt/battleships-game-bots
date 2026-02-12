@@ -15,42 +15,8 @@ permissions:
   contents: read    # Required for checkout
 
 jobs:
-  deploy-infrastructure:
-    name: Deploy OTEL Collector
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: GitHubActions-${{ github.run_id }}
-
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
-
-      - name: Add OpenTelemetry Helm repository
-        run: |
-          helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
-          helm repo update
-
-      - name: Deploy OpenTelemetry Collector
-        run: |
-          helm upgrade --install \
-            opentelemetry-collector \
-            open-telemetry/opentelemetry-collector \
-            --namespace battleships-bots \
-            --values k8s/base/otel-collector/values.yaml \
-            --wait \
-            --timeout 3m
-
   detect-changes:
     name: Detect Changed Bots
-    needs: deploy-infrastructure
     runs-on: ubuntu-latest
     outputs:
       bots: ${{ steps.detect.outputs.bots }}
