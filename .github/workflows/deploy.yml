@@ -33,13 +33,6 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
-      - name: Create or update OTEL collector secret
-        run: |
-          kubectl create secret generic otel-collector-secrets \
-            --from-literal=honeycomb-api-key=${{ secrets.HONEYCOMB_BOTS_API_KEY }} \
-            -n battleships-bots \
-            --dry-run=client -o yaml | kubectl apply -f -
-
       - name: Add OpenTelemetry Helm repository
         run: |
           helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
