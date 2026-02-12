@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: battleships
+  name: battleships-bots
   labels:
-    name: battleships
+    name: battleships-bots
     app: battleships-bots

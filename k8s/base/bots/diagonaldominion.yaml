@@ -45,7 +45,7 @@ spec:
         - name: bot-data
           mountPath: /data
         env:
-        - name: TOURNAMENT_MODE
+        - name: SKIRMISH_MODE
           value: "true"
         - name: BOT_NAME
           valueFrom:
@@ -54,6 +54,8 @@ spec:
               key: bot-name
         - name: GAME_API_URL
           value: "https://battleships.devrel.hny.wtf"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://opentelemetry-collector.battleships-bots.svc.cluster.local:4317"
         resources:
           requests:
             memory: "128Mi"
