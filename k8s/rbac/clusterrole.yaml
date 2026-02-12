@@ -24,16 +24,28 @@ rules:
     verbs:
       - get
 
-  # Pods and Services - existing permissions
+  # Pods - existing permissions
   - apiGroups:
       - ""
     resources:
       - pods
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Services - expanded for OTEL collector deployment
+  - apiGroups:
+      - ""
+    resources:
       - services
     verbs:
       - get
       - list
       - watch
+      - create
+      - update
+      - patch
 
   # Secrets - NEW: Required for OTEL collector deployment
   - apiGroups:
