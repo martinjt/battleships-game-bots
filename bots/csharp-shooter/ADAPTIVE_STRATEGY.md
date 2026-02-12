@@ -96,9 +96,9 @@ _opponentDetector.Reset();
 
 ## Performance Analysis
 
-### Expected Performance vs Tournament Bots
+### Expected Performance vs Skirmish Bots
 
-Based on our analysis of the tournament data:
+Based on our analysis of the skirmish data:
 
 #### vs DepthCharge (75% win rate)
 **Counter-Strategy**:
@@ -178,19 +178,19 @@ All 35 tests pass ✓
    - Machine learning for optimal counter-strategies
 
 4. **Meta-Game Adaptation**:
-   - Track opponent performance across tournaments
+   - Track opponent performance across skirmishes
    - Adjust strategies based on win/loss history
    - Exploit known bot weaknesses
 
 ## Usage
 
-### Running in Tournament Mode
+### Running in Skirmish Mode
 
 ```bash
-export TOURNAMENT_MODE=true
+export SKIRMISH_MODE=true
 export BOT_NAME=LinqToVictory
 export GAME_API_URL=https://battleships.devrel.hny.wtf
-export TOURNAMENT_ID=<your-tournament-id>
+export SKIRMISH_ID=<your-skirmish-id>
 
 dotnet run --project src/SharpShooter
 ```
@@ -198,7 +198,7 @@ dotnet run --project src/SharpShooter
 ### Configuration
 
 No configuration needed - the adaptive system works automatically:
-1. Bot registers with tournament
+1. Bot registers with skirmish
 2. Game starts, detector is reset
 3. First few shots trigger detection (placeholder for now)
 4. Ship placement uses counter-strategy
@@ -213,7 +213,7 @@ src/SharpShooter/
 ├── OpponentDetector.cs           # Pattern detection
 ├── AdaptiveShipPlacer.cs         # Counter-placement
 ├── AdaptiveFiringStrategy.cs     # Counter-firing
-├── Tournament/
+├── Skirmish/
 │   └── TournamentClient.cs       # Integration point
 └── ...
 
@@ -243,7 +243,7 @@ From the strategy analysis documents:
    - Random ship placement
    - This adaptive system addresses all these weaknesses
 
-## Expected Tournament Performance
+## Expected Skirmish Performance
 
 With the adaptive system:
 

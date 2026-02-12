@@ -138,15 +138,15 @@ aws ecr get-login-password --region us-east-1 | \
 
 ## Testing After Deployment
 
-1. Create a tournament with LinqToVictory and StackOverflowAttack:
+1. Create a skirmish with LinqToVictory and StackOverflowAttack:
    ```bash
-   # Create tournament
-   TOURNAMENT_ID=$(curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments \
+   # Create skirmish
+   SKIRMISH_ID=$(curl -X POST https://battleships.devrel.hny.wtf/api/v1/skirmishes \
      -H "Content-Type: application/json" \
      -d '{"name": "Test Deployment - '$(date +%Y%m%d-%H%M%S)'", "config": {"roundCount": 1}}' \
-     | jq -r '.tournamentId')
+     | jq -r '.skirmishId')
 
-   echo "Created tournament: $TOURNAMENT_ID"
+   echo "Created skirmish: $SKIRMISH_ID"
 
    # Get player IDs
    LINQ_ID=$(curl -s https://battleships.devrel.hny.wtf/api/v1/players | \
@@ -154,16 +154,16 @@ aws ecr get-login-password --region us-east-1 | \
    STACK_ID=$(curl -s https://battleships.devrel.hny.wtf/api/v1/players | \
      jq -r '.[] | select(.displayName == "StackOverflowAttack") | .playerId')
 
-   # Add players to tournament
-   curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID/players \
+   # Add players to skirmish
+   curl -X POST https://battleships.devrel.hny.wtf/api/v1/skirmishes/$SKIRMISH_ID/players \
      -H "Content-Type: application/json" \
      -d "{\"playerId\": \"$LINQ_ID\"}"
-   curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID/players \
+   curl -X POST https://battleships.devrel.hny.wtf/api/v1/skirmishes/$SKIRMISH_ID/players \
      -H "Content-Type: application/json" \
      -d "{\"playerId\": \"$STACK_ID\"}"
 
-   # Start tournament
-   curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID/start \
+   # Start skirmish
+   curl -X POST https://battleships.devrel.hny.wtf/api/v1/skirmishes/$SKIRMISH_ID/start \
      -H "Content-Type: application/json"
    ```
 
@@ -176,53 +176,53 @@ aws ecr get-login-password --region us-east-1 | \
 
 4. Verify no "Missing ships" errors
 
-5. **IMPORTANT: Complete test tournaments after testing**:
+5. **IMPORTANT: Complete test skirmishes after testing**:
 
-   After testing, always complete your test tournaments:
+   After testing, always complete your test skirmishes:
 
    ```bash
-   # Check tournament state
-   curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID | \
+   # Check skirmish state
+   curl -s https://battleships.devrel.hny.wtf/api/v1/skirmishes/$SKIRMISH_ID | \
      jq '{state, currentRound, games: (.games | length)}'
 
-   # Complete the tournament (moves to FINISHED state)
-   curl -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID/complete
+   # Complete the skirmish (moves to FINISHED state)
+   curl -X POST https://battleships.devrel.hny.wtf/api/v1/skirmishes/$SKIRMISH_ID/complete
 
    # Verify it's finished
-   curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments/$TOURNAMENT_ID | \
+   curl -s https://battleships.devrel.hny.wtf/api/v1/skirmishes/$SKIRMISH_ID | \
      jq '{state, finishedAt}'
    ```
 
-   **Bulk cleanup** - Complete all stuck test tournaments:
+   **Bulk cleanup** - Complete all stuck test skirmishes:
 
    ```bash
-   # List tournaments requiring cleanup
-   echo "Tournaments in non-FINISHED state:"
-   curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments | \
+   # List skirmishes requiring cleanup
+   echo "Skirmishes in non-FINISHED state:"
+   curl -s https://battleships.devrel.hny.wtf/api/v1/skirmishes | \
      jq -r '.[] | select(.state == "CREATED" or .state == "RUNNING") |
-            "\(.tournamentId) - \(.name) - \(.state)"'
+            "\(.skirmishId) - \(.name) - \(.state)"'
 
-   # Complete all test tournaments
-   curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments | \
+   # Complete all test skirmishes
+   curl -s https://battleships.devrel.hny.wtf/api/v1/skirmishes | \
      jq -r '.[] | select(.name | test("Test|Debug|Fix")) |
-            select(.state == "CREATED" or .state == "RUNNING") | .tournamentId' | \
+            select(.state == "CREATED" or .state == "RUNNING") | .skirmishId' | \
      while read tid; do
-       echo "Completing tournament: $tid"
-       curl -s -X POST https://battleships.devrel.hny.wtf/api/v1/tournaments/$tid/complete | \
+       echo "Completing skirmish: $tid"
+       curl -s -X POST https://battleships.devrel.hny.wtf/api/v1/skirmishes/$tid/complete | \
          jq -r '.message'
      done
 
-   # Verify all tournaments are finished
-   INCOMPLETE=$(curl -s https://battleships.devrel.hny.wtf/api/v1/tournaments | \
-     jq '.[] | select(.state == "CREATED" or .state == "RUNNING") | .tournamentId' | wc -l)
-   echo "Incomplete tournaments remaining: $INCOMPLETE"
+   # Verify all skirmishes are finished
+   INCOMPLETE=$(curl -s https://battleships.devrel.hny.wtf/api/v1/skirmishes | \
+     jq '.[] | select(.state == "CREATED" or .state == "RUNNING") | .skirmishId' | wc -l)
+   echo "Incomplete skirmishes remaining: $INCOMPLETE"
    ```
 
    **Why this matters**:
-   - Tournaments stuck in CREATED/RUNNING state accumulate and cause server issues
-   - Stuck tournaments can prevent new tournaments from starting
-   - Always complete test tournaments to keep the system healthy
-   - A clean system has all tournaments in FINISHED state
+   - Skirmishes stuck in CREATED/RUNNING state accumulate and cause server issues
+   - Stuck skirmishes can prevent new skirmishes from starting
+   - Always complete test skirmishes to keep the system healthy
+   - A clean system has all skirmishes in FINISHED state
 
 ## Debug Logging
 

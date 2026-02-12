@@ -50,14 +50,14 @@ System.InvalidOperationException: Failed to register player: Invalid response
 
 ---
 
-## Issue 2: WebSocket URL Format for Tournament Mode ❌
+## Issue 2: WebSocket URL Format for Skirmish Mode ❌
 
 ### What Documentation Says:
 ```typescript
 const ws = new WebSocket(`ws://localhost:5000/ws/player`);
 ```
 
-The AI generator prompt specifies: *"WebSocket URLs: `ws://localhost:5000/ws/player` (tournament)"*
+The AI generator prompt specifies: *"WebSocket URLs: `ws://localhost:5000/ws/player` (skirmish)"*
 
 ### What API Actually Requires:
 ```typescript
@@ -100,7 +100,7 @@ After connecting via WebSocket, the server sends a `REGISTERED` message type tha
 
 ---
 
-## Issue 4: Tournament WebSocket Registration Redundancy ⚠️
+## Issue 4: Skirmish WebSocket Registration Redundancy ⚠️
 
 ### Documentation Suggests:
 Send a `REGISTER` message over WebSocket with player ID
@@ -193,7 +193,7 @@ ws.onmessage = (event) => {
 **Add this workflow diagram:**
 
 ```
-Tournament Mode Flow:
+Skirmish Mode Flow:
 1. POST /api/v1/players → receive player.playerId
 2. Connect WebSocket to /ws/player/{playerId}
 3. Server automatically recognizes you (player ID is in URL)

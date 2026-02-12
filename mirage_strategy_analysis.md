@@ -1,16 +1,16 @@
 # Mirage Strategy Analysis
 
-**Tournament**: golden-serpent-0202
+**Skirmish**: golden-serpent-0202
 **Analysis Date**: 2026-02-03
 **Data Source**: Live API (https://battleships.devrel.hny.wtf)
 
 ## Executive Summary
 
-**Mirage is the DOMINANT bot in the tournament** with an exceptional 91.7% win rate (11-1 record). Uses a sophisticated **parity-based checkerboard search** strategy starting from the bottom-right corner. Only lost once in Round 1 vs DepthCharge, then adapted to win the next 3 rounds. This is an **A-tier bot** with near-optimal strategy.
+**Mirage is the DOMINANT bot in the skirmish** with an exceptional 91.7% win rate (11-1 record). Uses a sophisticated **parity-based checkerboard search** strategy starting from the bottom-right corner. Only lost once in Round 1 vs DepthCharge, then adapted to win the next 3 rounds. This is an **A-tier bot** with near-optimal strategy.
 
 ---
 
-## Tournament Performance Summary
+## Skirmish Performance Summary
 
 ### Overall Record
 - **Total Games**: 12 games across 4 rounds
@@ -23,12 +23,12 @@
 #### vs DepthCharge (3-1, 75% win rate)
 | Round | Mirage Hits | Opponent Hits | Result | Notes |
 |-------|-------------|---------------|---------|-------|
-| 1 | 13 | 17 | LOSS | Only tournament loss - got 13/17 |
+| 1 | 13 | 17 | LOSS | Only skirmish loss - got 13/17 |
 | 2 | 17 | 16 | WIN | Close game, opponent missed 1 ship |
 | 3 | 17 | 16 | WIN | Close game, opponent missed 1 ship |
 | 4 | 17 | 14 | WIN | Comfortable win |
 
-**Analysis**: Lost Round 1 but **immediately adapted** to win next 3 rounds. DepthCharge performed well (14-16 hits) but couldn't complete the sweep. This is the most competitive matchup in the tournament.
+**Analysis**: Lost Round 1 but **immediately adapted** to win next 3 rounds. DepthCharge performed well (14-16 hits) but couldn't complete the sweep. This is the most competitive matchup in the skirmish.
 
 #### vs LinqToVictory (4-0, 100% win rate)
 | Round | Mirage Hits | Opponent Hits | Result |
@@ -320,19 +320,19 @@ All ships on odd rows (1,3,5,7,9) = unchecked by Mirage's checkerboard!
 
 ### API Endpoints Used
 - `GET /api/v1/players` - Retrieved player information
-- `GET /api/v1/tournaments` - Retrieved tournament standings
+- `GET /api/v1/skirmishes` - Retrieved skirmish standings
 - `GET /api/v1/games/{gameId}` - Retrieved detailed move-by-move data
 
 ### Analysis Methodology
 - Analyzed 3 complete games with full move history
-- Cross-referenced all 12 tournament games for statistics
+- Cross-referenced all 12 skirmish games for statistics
 - Identified pattern through first-50-move visualization
 - Calculated hit rates and efficiency metrics
 
 ### Data Limitations
 - **No ship placement data**: Cannot confirm placement hypothesis
 - **No between-round changes**: Cannot verify if Mirage adapts placement
-- **Single tournament**: Only one competitive context analyzed
+- **Single skirmish**: Only one competitive context analyzed
 
 ---
 
@@ -370,7 +370,7 @@ The only loss came in Round 1 vs DepthCharge when Mirage failed to find the Batt
 - **Defense**: A (excellent ship placement)
 - **Adaptability**: A (recovered from only loss)
 
-**Overall Assessment**: **A-tier bot** - Tournament favorite with near-optimal strategy. Only vulnerability is specific ship placement exploiting checkerboard gaps, which is difficult to execute consistently.
+**Overall Assessment**: **A-tier bot** - Skirmish favorite with near-optimal strategy. Only vulnerability is specific ship placement exploiting checkerboard gaps, which is difficult to execute consistently.
 
 **Why Mirage Wins**: Mathematical optimality. While DepthCharge uses intuition (center-first), Mirage uses proven game theory (parity-based search). In Battleship, math beats intuition.
 

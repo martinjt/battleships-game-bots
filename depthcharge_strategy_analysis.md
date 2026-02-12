@@ -1,10 +1,10 @@
 # DepthCharge Strategy Analysis
 
-**Tournament**: golden-serpent-0202
+**Skirmish**: golden-serpent-0202
 **Analysis Date**: 2026-02-03
 **Data Source**: Live API (https://battleships.devrel.hny.wtf)
 
-## Tournament Performance Summary
+## Skirmish Performance Summary
 
 ### Overall Record
 - **Total Games**: 12 games across 4 rounds
@@ -218,7 +218,7 @@ Based on limited data, possible strategies:
 
 ### Adaptive Strategy
 1. **Opponent Modeling**: Track where opponents place ships
-2. **Meta-Game Adaptation**: Adjust strategy based on tournament meta
+2. **Meta-Game Adaptation**: Adjust strategy based on skirmish meta
 
 ---
 
@@ -226,13 +226,13 @@ Based on limited data, possible strategies:
 
 ### API Endpoints Used
 - `GET /api/v1/players` - Retrieved player information
-- `GET /api/v1/tournaments` - Retrieved tournament standings
+- `GET /api/v1/skirmishes` - Retrieved skirmish standings
 - `GET /api/v1/games/{gameId}` - Retrieved detailed move-by-move data
 
 ### Data Limitations
 - **No ship placement data**: API doesn't expose initial ship coordinates
 - **No player strategy metadata**: Can't see bot's internal decision logic
-- **Limited game history**: Only analyzed current tournament
+- **Limited game history**: Only analyzed current skirmish
 
 ### Suggested API Improvements
 1. Add ship placement data to game endpoint

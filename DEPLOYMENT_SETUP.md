@@ -20,7 +20,7 @@
 ### 4. Kubernetes Manifest
 - **Created:** `k8s/base/bots/csharp-shooter.yaml`
 - **Features:**
-  - Tournament mode enabled
+  - Skirmish mode enabled
   - Resource limits (512Mi memory, 500m CPU)
   - Liveness and readiness probes
   - Auto-restart on failure
@@ -58,7 +58,7 @@ export GITHUB_REPO="battleships-game-bots"
 ```bash
 # Commit and push changes
 git add .
-git commit -m "Add csharp-shooter bot with tournament mode"
+git commit -m "Add csharp-shooter bot with skirmish mode"
 git push origin main
 
 # Watch the deployment
@@ -152,7 +152,7 @@ kubectl get events -n battleships --sort-by='.lastTimestamp'
 kubectl rollout restart deployment battleships-csharp-shooter -n battleships
 ```
 
-### Check Tournament Connection
+### Check Skirmish Connection
 ```bash
 # Logs should show:
 # ✓ Registered player: {playerId}

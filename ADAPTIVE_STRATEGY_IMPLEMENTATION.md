@@ -52,7 +52,7 @@ An intelligent adaptive strategy system for **LinqToVictory** (SharpShooter bot)
 
 ### Modified Files
 
-**`bots/csharp-shooter/src/SharpShooter/Tournament/TournamentClient.cs`**
+**`bots/csharp-shooter/src/SharpShooter/Skirmish/TournamentClient.cs`**
 - Replaced `RandomShipPlacer` with `AdaptiveShipPlacer`
 - Replaced `LeftToRightFiringStrategy` with `AdaptiveFiringStrategy`
 - Added `OpponentDetector` instance
@@ -190,13 +190,13 @@ dotnet test
 
 ## Usage
 
-The system works automatically when running in tournament mode:
+The system works automatically when running in skirmish mode:
 
 ```bash
-export TOURNAMENT_MODE=true
+export SKIRMISH_MODE=true
 export BOT_NAME=LinqToVictory
 export GAME_API_URL=https://battleships.devrel.hny.wtf
-export TOURNAMENT_ID=<tournament-id>
+export SKIRMISH_ID=<skirmish-id>
 
 cd bots/csharp-shooter
 dotnet run --project src/SharpShooter
@@ -329,4 +329,4 @@ The adaptive counter-strategy system transforms LinqToVictory from a **C-tier bo
 **Test Pass Rate**: 100% (35/35 tests pass)
 **Documentation**: Complete with usage examples and analysis
 
-**Ready for Tournament Deployment** ✓
+**Ready for Skirmish Deployment** ✓

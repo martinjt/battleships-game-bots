@@ -1,6 +1,6 @@
 # Mirage vs DepthCharge: Head-to-Head Strategy Comparison
 
-**Tournament**: golden-serpent-0202
+**Skirmish**: golden-serpent-0202
 **Analysis Date**: 2026-02-03
 
 ---
@@ -153,7 +153,7 @@ X = Checked squares (50% of board)
 
 ## Performance Metrics
 
-### Tournament Results
+### Skirmish Results
 
 | Metric | Mirage | DepthCharge |
 |--------|--------|-------------|
@@ -342,7 +342,7 @@ Over many games, **Mirage's mathematical superiority** results in higher win rat
 
 ## Conclusion
 
-**Tournament Champion**: **Mirage** 🏆
+**Skirmish Champion**: **Mirage** 🏆
 
 **Final Rankings**:
 1. **Mirage** - 91.7% win rate (A-tier)

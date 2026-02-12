@@ -1,9 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using StackOverflowAttack.Strategies;
-using StackOverflowAttack.Skirmish.Messages;
-using StackOverflowAttack.Skirmish.Models;
+using SharpShooter.Skirmish.Messages;
+using SharpShooter.Skirmish.Models;
 
 namespace StackOverflowAttack.Skirmish;
 
@@ -13,26 +12,30 @@ public class SkirmishClient : IDisposable
     private SkirmishWebSocketClient? _webSocketClient;
     private readonly ILogger _logger;
     private readonly SkirmishConfig _config;
+    private readonly OpponentDetector _sharedOpponentDetector;
     private readonly IShipPlacer _shipPlacer;
-    private readonly Dictionary<string, ProbabilityDensityFiringStrategy> _gameStrategies = new();
+    private readonly Dictionary<string, AdaptiveFiringStrategy> _gameStrategies = new();
     private string? _playerId;
     private string? _authSecret;
     private string? _currentGameId;
     private bool _disposed;
+    private volatile bool _playerNotFoundReceived;
 
     public SkirmishClient(SkirmishConfig config, ILogger logger)
     {
         _config = config;
         _logger = logger;
         _httpClient = new HttpClient { BaseAddress = new Uri(config.ApiUrl) };
-        _shipPlacer = new RandomShipPlacer();
+        _sharedOpponentDetector = new OpponentDetector();
+        _shipPlacer = new AdaptiveShipPlacer(_sharedOpponentDetector);
     }
 
-    private ProbabilityDensityFiringStrategy GetOrCreateStrategy(string gameId)
+    private AdaptiveFiringStrategy GetOrCreateStrategy(string gameId)
     {
         if (!_gameStrategies.TryGetValue(gameId, out var strategy))
         {
-            strategy = new ProbabilityDensityFiringStrategy();
+            var opponentDetector = new OpponentDetector();
+            strategy = new AdaptiveFiringStrategy(opponentDetector);
             _gameStrategies[gameId] = strategy;
             _logger.LogInformation("Created new firing strategy for game: {GameId}", gameId);
         }
@@ -43,40 +46,82 @@ public class SkirmishClient : IDisposable
     {
         try
         {
-            // Step 1: Try to load existing credentials
-            var existingCredentials = await PlayerCredentials.LoadAsync(_config.BotName).ConfigureAwait(false);
-            if (existingCredentials != null)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                _playerId = existingCredentials.PlayerId;
-                _authSecret = existingCredentials.AuthSecret;
-                _logger.LogInformation("Loaded existing credentials for: {BotName} (Player ID: {PlayerId})",
-                    _config.BotName, _playerId);
-            }
-            else
-            {
-                // Step 2: Register player via HTTP
-                _logger.LogInformation("Registering new player: {BotName}", _config.BotName);
-                await RegisterPlayerAsync(cancellationToken).ConfigureAwait(false);
-            }
+                // Step 1: Try to load existing credentials
+                var existingCredentials = await PlayerCredentials.LoadAsync(_config.BotName).ConfigureAwait(false);
+                if (existingCredentials != null)
+                {
+                    _playerId = existingCredentials.PlayerId;
+                    _authSecret = existingCredentials.AuthSecret;
+                    _logger.LogInformation("Loaded existing credentials for: {BotName} (Player ID: {PlayerId})",
+                        _config.BotName, _playerId);
+                }
+                else
+                {
+                    // Step 2: Register player via HTTP
+                    _logger.LogInformation("Registering new player: {BotName}", _config.BotName);
+                    await RegisterPlayerAsync(cancellationToken).ConfigureAwait(false);
+                }
 
-            // Step 3: Join tournament if specified
-            if (!string.IsNullOrEmpty(_config.SkirmishId))
-            {
-                _logger.LogInformation("Joining tournament: {SkirmishId}", _config.SkirmishId);
-                await JoinSkirmishAsync(cancellationToken).ConfigureAwait(false);
+                // Step 3: Join tournament if specified
+                if (!string.IsNullOrEmpty(_config.SkirmishId))
+                {
+                    _logger.LogInformation("Joining tournament: {SkirmishId}", _config.SkirmishId);
+                    await JoinSkirmishAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                // Reset player not found flag before connecting
+                _playerNotFoundReceived = false;
+
+                // Step 4: Create and connect WebSocket with player ID
+                _logger.LogInformation("Connecting to WebSocket...");
+                var wsUrl = _config.GetWebSocketUrl(_playerId!);
+                _webSocketClient?.Dispose();
+                _webSocketClient = new SkirmishWebSocketClient(wsUrl, _config.MaxReconnectAttempts, _logger);
+                _webSocketClient.MessageReceived += HandleMessageAsync;
+                _webSocketClient.Connected += OnConnectedAsync;
+                _webSocketClient.Disconnected += OnDisconnectedAsync;
+
+                try
+                {
+                    await _webSocketClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning(ex, "WebSocket connection failed or disconnected");
+
+                    // Check if we need to re-register due to player not found
+                    if (_playerNotFoundReceived)
+                    {
+                        _logger.LogWarning("Player not found on server - initiating re-registration flow");
+                        _logger.LogInformation("Waiting 30 seconds before re-registration...");
+
+                        await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken).ConfigureAwait(false);
+
+                        // Delete invalid credentials
+                        var credentialsPath = PlayerCredentials.GetCredentialsPath();
+                        if (File.Exists(credentialsPath))
+                        {
+                            File.Delete(credentialsPath);
+                            _logger.LogInformation("Deleted invalid credentials from {Path}", credentialsPath);
+                        }
+
+                        // Clear cached player info
+                        _playerId = null;
+                        _authSecret = null;
+
+                        _logger.LogInformation("Re-registration will occur on next iteration");
+                        // Loop will continue and re-register
+                    }
+                    else
+                    {
+                        // Normal reconnection - wait a bit before retrying
+                        _logger.LogInformation("Will attempt to reconnect in 5 seconds...");
+                        await Task.Delay(TimeSpan.FromSeconds(5), cancellationToken).ConfigureAwait(false);
+                    }
+                }
             }
-
-            // Step 4: Create and connect WebSocket with player ID
-            _logger.LogInformation("Connecting to WebSocket...");
-            var wsUrl = _config.GetWebSocketUrl(_playerId!);
-            _webSocketClient = new SkirmishWebSocketClient(wsUrl, _config.MaxReconnectAttempts, _logger);
-            _webSocketClient.MessageReceived += HandleMessageAsync;
-            _webSocketClient.Connected += OnConnectedAsync;
-            _webSocketClient.Disconnected += OnDisconnectedAsync;
-            await _webSocketClient.ConnectAsync(cancellationToken).ConfigureAwait(false);
-
-            // Keep running until cancelled
-            await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -279,7 +324,7 @@ public class SkirmishClient : IDisposable
         if (request.Request.LastShot?.SunkShipTypeId != null)
         {
             _logger.LogInformation("Ship sunk: {ShipTypeId}", request.Request.LastShot.SunkShipTypeId);
-            strategy.RecordSunk(request.Request.LastShot.SunkShipTypeId);
+            strategy.RecordSunk();
         }
 
         var shot = strategy.GetNextShot();
@@ -329,6 +374,13 @@ public class SkirmishClient : IDisposable
         if (error != null)
         {
             _logger.LogError("Server error: {Error} - {Message}", error.Error, error.Message);
+
+            // Check if player was not found - need to re-register
+            if (error.Error?.Equals("PLAYER_NOT_FOUND", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _logger.LogWarning("Player not found on server - will trigger re-registration after disconnect");
+                _playerNotFoundReceived = true;
+            }
         }
         else
         {

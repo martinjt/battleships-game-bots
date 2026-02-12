@@ -7,36 +7,36 @@ A .NET/C# battleships bot with a simple left-to-right firing pattern and random 
 - **Firing Pattern**: Systematic left-to-right, top-to-bottom sweep
 - **Ship Placement**: Randomly positioned ships without overlap
 
-## Tournament Mode
+## Skirmish Mode
 
-The bot supports WebSocket-based tournament mode for the live Battleships API.
+The bot supports WebSocket-based skirmish mode for the live Battleships API.
 
 ### Environment Variables
 
-- `TOURNAMENT_MODE=true` - Enable tournament mode (required)
+- `SKIRMISH_MODE=true` - Enable skirmish mode (required)
 - `BOT_NAME=csharp-shooter` - Your bot's display name (default: csharp-shooter)
 - `GAME_API_URL=https://battleships.devrel.hny.wtf` - API base URL (default shown)
-- `TOURNAMENT_ID=<uuid>` - Optional: Specific tournament to join
+- `SKIRMISH_ID=<uuid>` - Optional: Specific skirmish to join
 
-### Running in Tournament Mode
+### Running in Skirmish Mode
 
 ```bash
 # Local development
 cd src/SharpShooter
-TOURNAMENT_MODE=true \
+SKIRMISH_MODE=true \
 BOT_NAME=my-bot \
 dotnet run
 
 # Docker
 docker build -t csharp-shooter .
 docker run \
-  -e TOURNAMENT_MODE=true \
+  -e SKIRMISH_MODE=true \
   -e BOT_NAME=my-bot \
   -e GAME_API_URL=https://battleships.devrel.hny.wtf \
   csharp-shooter
 ```
 
-### How Tournament Mode Works
+### How Skirmish Mode Works
 
 1. **HTTP Registration**: Bot registers with `/api/v1/players` to get a player ID
 2. **WebSocket Connection**: Connects to `wss://battleships.devrel.hny.wtf/ws/player`
@@ -79,12 +79,12 @@ dotnet test --filter "FullyQualifiedName~LeftToRightFiringStrategyTests"
 ```
 csharp-shooter/
 ├── src/SharpShooter/
-│   ├── Program.cs                      # Entry point (tournament/legacy mode)
+│   ├── Program.cs                      # Entry point (skirmish/legacy mode)
 │   ├── BattleshipsBot.cs               # Legacy bot logic
 │   ├── FiringStrategy.cs               # Left-to-right firing pattern
 │   ├── ShipPlacer.cs                   # Random ship placement
-│   └── Tournament/
-│       ├── TournamentClient.cs         # Tournament orchestration
+│   └── Skirmish/
+│       ├── TournamentClient.cs         # Skirmish orchestration
 │       ├── TournamentWebSocketClient.cs # WebSocket management
 │       ├── Messages/                   # WebSocket message DTOs
 │       │   ├── WebSocketMessage.cs
@@ -102,7 +102,7 @@ csharp-shooter/
 
 ## Features
 
-- WebSocket-based tournament mode with auto-reconnection
+- WebSocket-based skirmish mode with auto-reconnection
 - Comprehensive unit tests with xUnit and FluentAssertions
 - Structured logging with Microsoft.Extensions.Logging
 - HTTP client for player registration

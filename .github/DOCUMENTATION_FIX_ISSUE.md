@@ -125,7 +125,7 @@ ws.onmessage = (event) => {
 
 ### 4. Add Connection Flow Diagram
 ```
-Tournament Mode Flow:
+Skirmish Mode Flow:
 1. POST /api/v1/players
    → Response: { player: { playerId: "..." } }
 

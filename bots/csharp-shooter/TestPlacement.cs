@@ -2,7 +2,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using SharpShooter;
-using SharpShooter.Tournament.Messages;
+using SharpShooter.Skirmish.Messages;
 
 class TestPlacement
 {
