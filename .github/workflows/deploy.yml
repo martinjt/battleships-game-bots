@@ -33,10 +33,6 @@ jobs:
         run: |
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
 
-      - name: Ensure namespace exists
-        run: |
-          kubectl apply -f k8s/base/namespace.yaml
-
       - name: Create or update OTEL collector secret
         run: |
           kubectl create secret generic otel-collector-secrets \
