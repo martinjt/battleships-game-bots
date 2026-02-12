@@ -24,6 +24,16 @@ rules:
     verbs:
       - get
 
+  # ReplicaSets - Required by Helm
+  - apiGroups:
+      - apps
+    resources:
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+
   # Pods - existing permissions
   - apiGroups:
       - ""
