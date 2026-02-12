@@ -1,0 +1,84 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: battleships-bot-deployer
+rules:
+  # Deployments - existing permissions
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
+      - delete
+
+  # Deployment status - existing permissions
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/status
+    verbs:
+      - get
+
+  # Pods and Services - existing permissions
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+
+  # Secrets - NEW: Required for OTEL collector deployment
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
+
+  # ConfigMaps - NEW: Helm may need these
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
+
+  # ServiceAccounts - NEW: Helm deployments create these
+  - apiGroups:
+      - ""
+    resources:
+      - serviceaccounts
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
+
+  # PersistentVolumeClaims - Existing bot PVCs
+  - apiGroups:
+      - ""
+    resources:
+      - persistentvolumeclaims
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
