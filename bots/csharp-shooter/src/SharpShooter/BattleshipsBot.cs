@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using BattleshipsBot.Common.Interfaces;
 
 namespace SharpShooter;
 
@@ -17,8 +18,10 @@ public class BattleshipsBot
         _httpClient = new HttpClient { BaseAddress = new Uri(apiUrl) };
         _botName = botName;
         _logger = logger;
-        _firingStrategy = new LeftToRightFiringStrategy();
-        _shipPlacer = new RandomShipPlacer();
+        // For legacy mode, use adaptive strategies
+        var opponentDetector = new OpponentDetector();
+        _shipPlacer = new AdaptiveShipPlacer(opponentDetector);
+        _firingStrategy = new AdaptiveFiringStrategy(opponentDetector);
     }
 
     public async Task RunAsync()

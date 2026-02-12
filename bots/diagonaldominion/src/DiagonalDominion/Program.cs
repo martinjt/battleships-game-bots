@@ -2,8 +2,9 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using DiagonalDominion.Skirmish;
-using DiagonalDominion.Skirmish.Models;
+using DiagonalDominion;
+using BattleshipsBot.Common.Skirmish;
+using BattleshipsBot.Common.Skirmish.Models;
 
 // Configure OpenTelemetry
 var serviceName = Environment.GetEnvironmentVariable("BOT_NAME") ?? "ShipHappens";
@@ -46,7 +47,11 @@ try
         logger.LogInformation("Skirmish ID: {SkirmishId}", config.SkirmishId);
     }
 
-    using var skirmishClient = new SkirmishClient(config, logger);
+        // Setup bot-specific strategies
+        var shipPlacer = new DiagonalBiasShipPlacer();
+        var strategyFactory = new DiagonalSweepFiringStrategyFactory();
+
+    using var skirmishClient = new SkirmishClient(config, shipPlacer, strategyFactory, logger);
     await skirmishClient.RunAsync(cts.Token);
 }
 catch (OperationCanceledException)

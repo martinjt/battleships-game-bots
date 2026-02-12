@@ -2,8 +2,9 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using EdgeHunter.Skirmish;
-using EdgeHunter.Skirmish.Models;
+using EdgeHunter;
+using BattleshipsBot.Common.Skirmish;
+using BattleshipsBot.Common.Skirmish.Models;
 
 var serviceName = Environment.GetEnvironmentVariable("BOT_NAME") ?? "NavalGazing";
 var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -44,7 +45,11 @@ try
         logger.LogInformation("Skirmish ID: {SkirmishId}", config.SkirmishId);
     }
 
-    using var skirmishClient = new SkirmishClient(config, logger);
+        // Setup bot-specific strategies
+        var shipPlacer = new CenterClusterShipPlacer();
+        var strategyFactory = new PerimeterInFiringStrategyFactory();
+
+    using var skirmishClient = new SkirmishClient(config, shipPlacer, strategyFactory, logger);
     await skirmishClient.RunAsync(cts.Token);
 }
 catch (OperationCanceledException)

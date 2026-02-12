@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using BattleshipsBot.Common.Interfaces;
 
 namespace StackOverflowAttack;
 
@@ -17,8 +18,8 @@ public class BattleshipsBot
         _httpClient = new HttpClient { BaseAddress = new Uri(apiUrl) };
         _botName = botName;
         _logger = logger;
-        _firingStrategy = new LeftToRightFiringStrategy();
-        _shipPlacer = new RandomShipPlacer();
+        _firingStrategy = new SimpleFiringStrategy();
+        _shipPlacer = new SimpleShipPlacer();
     }
 
     public async Task RunAsync()

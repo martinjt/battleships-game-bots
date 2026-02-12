@@ -3,8 +3,8 @@ using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using SharpShooter;
-using SharpShooter.Skirmish;
-using SharpShooter.Skirmish.Models;
+using BattleshipsBot.Common.Skirmish;
+using BattleshipsBot.Common.Skirmish.Models;
 
 // Configure OpenTelemetry
 var serviceName = Environment.GetEnvironmentVariable("BOT_NAME") ?? "LinqToVictory";
@@ -52,17 +52,22 @@ try
             logger.LogInformation("Skirmish ID: {SkirmishId}", config.SkirmishId);
         }
 
-        using var skirmishClient = new SkirmishClient(config, logger);
+        // Setup bot-specific strategies
+        var opponentDetector = new OpponentDetector();
+        var shipPlacer = new AdaptiveShipPlacer(opponentDetector);
+        var strategyFactory = new AdaptiveFiringStrategyFactory(opponentDetector);
+
+        using var skirmishClient = new SkirmishClient(config, shipPlacer, strategyFactory, logger);
         await skirmishClient.RunAsync(cts.Token);
     }
     else
     {
-        var logger = loggerFactory.CreateLogger<BattleshipsBot>();
+        var logger = loggerFactory.CreateLogger<SharpShooter.BattleshipsBot>();
         var apiUrl = Environment.GetEnvironmentVariable("GAME_API_URL") ?? "https://battleships.devrel.hny.wtf";
         var botName = Environment.GetEnvironmentVariable("BOT_NAME") ?? "csharp-shooter";
 
         logger.LogInformation("Starting in LEGACY MODE");
-        var bot = new BattleshipsBot(apiUrl, botName, logger);
+        var bot = new SharpShooter.BattleshipsBot(apiUrl, botName, logger);
         await bot.RunAsync();
     }
 }

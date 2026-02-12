@@ -2,8 +2,9 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using HeatSeeker.Skirmish;
-using HeatSeeker.Skirmish.Models;
+using HeatSeeker;
+using BattleshipsBot.Common.Skirmish;
+using BattleshipsBot.Common.Skirmish.Models;
 
 var serviceName = Environment.GetEnvironmentVariable("BOT_NAME") ?? "SunkCost";
 var otlpEndpoint = Environment.GetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT")
@@ -44,7 +45,11 @@ try
         logger.LogInformation("Skirmish ID: {SkirmishId}", config.SkirmishId);
     }
 
-    using var skirmishClient = new SkirmishClient(config, logger);
+        // Setup bot-specific strategies
+        var shipPlacer = new DispersedAsymmetricShipPlacer();
+        var strategyFactory = new HeatMapFiringStrategyFactory();
+
+    using var skirmishClient = new SkirmishClient(config, shipPlacer, strategyFactory, logger);
     await skirmishClient.RunAsync(cts.Token);
 }
 catch (OperationCanceledException)

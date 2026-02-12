@@ -1,19 +1,28 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
+# Copy common project first (context is battleships-game-bots root)
+COPY common/BattleshipsBot.Common/BattleshipsBot.Common.csproj common/BattleshipsBot.Common/
+
 # Copy solution and project files
-COPY SharpShooter.sln .
-COPY src/SharpShooter/SharpShooter.csproj src/SharpShooter/
-COPY tests/SharpShooter.Tests/SharpShooter.Tests.csproj tests/SharpShooter.Tests/
+COPY bots/csharp-shooter/SharpShooter.sln bots/csharp-shooter/
+COPY bots/csharp-shooter/src/SharpShooter/SharpShooter.csproj bots/csharp-shooter/src/SharpShooter/
+COPY bots/csharp-shooter/tests/SharpShooter.Tests/SharpShooter.Tests.csproj bots/csharp-shooter/tests/SharpShooter.Tests/
 
 # Restore dependencies
+WORKDIR /src/bots/csharp-shooter
 RUN dotnet restore
 
-# Copy source code
-COPY src/ src/
-COPY tests/ tests/
+# Copy common project source
+WORKDIR /src
+COPY common/BattleshipsBot.Common/ common/BattleshipsBot.Common/
+
+# Copy bot source code
+COPY bots/csharp-shooter/src/ bots/csharp-shooter/src/
+COPY bots/csharp-shooter/tests/ bots/csharp-shooter/tests/
 
 # Run tests
+WORKDIR /src/bots/csharp-shooter
 RUN dotnet test tests/SharpShooter.Tests/SharpShooter.Tests.csproj --configuration Release
 
 # Build and publish

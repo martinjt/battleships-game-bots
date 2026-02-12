@@ -1,3 +1,4 @@
+using BattleshipsBot.Common.Interfaces;
 namespace StackOverflowAttack.Strategies;
 
 public class ProbabilityDensityFiringStrategy : IFiringStrategy
@@ -77,6 +78,14 @@ public class ProbabilityDensityFiringStrategy : IFiringStrategy
         _firedShots.Add(coordinate);
     }
 
+    public void RecordSunk()
+    {
+        // Clear target queue and exit target mode when ship is sunk
+        _targetQueue.Clear();
+        _inTargetMode = false;
+        _lastHit = null;
+    }
+
     public void RecordSunk(string shipName)
     {
         // Remove the sunk ship from remaining ships
@@ -86,10 +95,7 @@ public class ProbabilityDensityFiringStrategy : IFiringStrategy
             _remainingShips.Remove(ship);
         }
 
-        // Clear target queue and exit target mode when ship is sunk
-        _targetQueue.Clear();
-        _inTargetMode = false;
-        _lastHit = null;
+        RecordSunk();
     }
 
     public void Reset()

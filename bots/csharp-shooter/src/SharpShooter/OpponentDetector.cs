@@ -1,3 +1,5 @@
+using BattleshipsBot.Common.Interfaces;
+
 namespace SharpShooter;
 
 /// <summary>

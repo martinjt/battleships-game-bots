@@ -17,4 +17,8 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.10.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../../../../common/BattleshipsBot.Common/BattleshipsBot.Common.csproj" />
+  </ItemGroup>
+
 </Project>
