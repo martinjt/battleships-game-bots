@@ -5,9 +5,9 @@ WORKDIR /src
 COPY common/BattleshipsBot.Common/BattleshipsBot.Common.csproj common/BattleshipsBot.Common/
 
 # Copy solution and project files
-COPY bots/heatseeker/Heatseeker.sln bots/heatseeker/
-COPY bots/heatseeker/src/Heatseeker/Heatseeker.csproj bots/heatseeker/src/Heatseeker/
-COPY bots/heatseeker/tests/Heatseeker.Tests/Heatseeker.Tests.csproj bots/heatseeker/tests/Heatseeker.Tests/
+COPY bots/heatseeker/HeatSeeker.sln bots/heatseeker/
+COPY bots/heatseeker/src/HeatSeeker/HeatSeeker.csproj bots/heatseeker/src/HeatSeeker/
+COPY bots/heatseeker/tests/HeatSeeker.Tests/HeatSeeker.Tests.csproj bots/heatseeker/tests/HeatSeeker.Tests/
 
 # Restore dependencies
 WORKDIR /src/bots/heatseeker
@@ -23,14 +23,14 @@ COPY bots/heatseeker/tests/ bots/heatseeker/tests/
 
 # Run tests
 WORKDIR /src/bots/heatseeker
-RUN dotnet test tests/Heatseeker.Tests/Heatseeker.Tests.csproj --configuration Release
+RUN dotnet test tests/HeatSeeker.Tests/HeatSeeker.Tests.csproj --configuration Release
 
 # Build and publish
-RUN dotnet publish src/Heatseeker/Heatseeker.csproj -c Release -o /app/publish
+RUN dotnet publish src/HeatSeeker/HeatSeeker.csproj -c Release -o /app/publish
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine
 WORKDIR /app
 COPY --from=build /app/publish .
 
-ENTRYPOINT ["dotnet", "Heatseeker.dll"]
+ENTRYPOINT ["dotnet", "HeatSeeker.dll"]

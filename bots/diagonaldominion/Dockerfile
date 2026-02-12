@@ -5,9 +5,9 @@ WORKDIR /src
 COPY common/BattleshipsBot.Common/BattleshipsBot.Common.csproj common/BattleshipsBot.Common/
 
 # Copy solution and project files
-COPY bots/diagonaldominion/Diagonaldominion.sln bots/diagonaldominion/
-COPY bots/diagonaldominion/src/Diagonaldominion/Diagonaldominion.csproj bots/diagonaldominion/src/Diagonaldominion/
-COPY bots/diagonaldominion/tests/Diagonaldominion.Tests/Diagonaldominion.Tests.csproj bots/diagonaldominion/tests/Diagonaldominion.Tests/
+COPY bots/diagonaldominion/DiagonalDominion.sln bots/diagonaldominion/
+COPY bots/diagonaldominion/src/DiagonalDominion/DiagonalDominion.csproj bots/diagonaldominion/src/DiagonalDominion/
+COPY bots/diagonaldominion/tests/DiagonalDominion.Tests/DiagonalDominion.Tests.csproj bots/diagonaldominion/tests/DiagonalDominion.Tests/
 
 # Restore dependencies
 WORKDIR /src/bots/diagonaldominion
@@ -23,14 +23,14 @@ COPY bots/diagonaldominion/tests/ bots/diagonaldominion/tests/
 
 # Run tests
 WORKDIR /src/bots/diagonaldominion
-RUN dotnet test tests/Diagonaldominion.Tests/Diagonaldominion.Tests.csproj --configuration Release
+RUN dotnet test tests/DiagonalDominion.Tests/DiagonalDominion.Tests.csproj --configuration Release
 
 # Build and publish
-RUN dotnet publish src/Diagonaldominion/Diagonaldominion.csproj -c Release -o /app/publish
+RUN dotnet publish src/DiagonalDominion/DiagonalDominion.csproj -c Release -o /app/publish
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine
 WORKDIR /app
 COPY --from=build /app/publish .
 
-ENTRYPOINT ["dotnet", "Diagonaldominion.dll"]
+ENTRYPOINT ["dotnet", "DiagonalDominion.dll"]

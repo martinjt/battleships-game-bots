@@ -5,9 +5,9 @@ WORKDIR /src
 COPY common/BattleshipsBot.Common/BattleshipsBot.Common.csproj common/BattleshipsBot.Common/
 
 # Copy solution and project files
-COPY bots/edgehunter/Edgehunter.sln bots/edgehunter/
-COPY bots/edgehunter/src/Edgehunter/Edgehunter.csproj bots/edgehunter/src/Edgehunter/
-COPY bots/edgehunter/tests/Edgehunter.Tests/Edgehunter.Tests.csproj bots/edgehunter/tests/Edgehunter.Tests/
+COPY bots/edgehunter/EdgeHunter.sln bots/edgehunter/
+COPY bots/edgehunter/src/EdgeHunter/EdgeHunter.csproj bots/edgehunter/src/EdgeHunter/
+COPY bots/edgehunter/tests/EdgeHunter.Tests/EdgeHunter.Tests.csproj bots/edgehunter/tests/EdgeHunter.Tests/
 
 # Restore dependencies
 WORKDIR /src/bots/edgehunter
@@ -23,14 +23,14 @@ COPY bots/edgehunter/tests/ bots/edgehunter/tests/
 
 # Run tests
 WORKDIR /src/bots/edgehunter
-RUN dotnet test tests/Edgehunter.Tests/Edgehunter.Tests.csproj --configuration Release
+RUN dotnet test tests/EdgeHunter.Tests/EdgeHunter.Tests.csproj --configuration Release
 
 # Build and publish
-RUN dotnet publish src/Edgehunter/Edgehunter.csproj -c Release -o /app/publish
+RUN dotnet publish src/EdgeHunter/EdgeHunter.csproj -c Release -o /app/publish
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/runtime:9.0-alpine
 WORKDIR /app
 COPY --from=build /app/publish .
 
-ENTRYPOINT ["dotnet", "Edgehunter.dll"]
+ENTRYPOINT ["dotnet", "EdgeHunter.dll"]
