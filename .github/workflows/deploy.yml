@@ -137,10 +137,16 @@ jobs:
         run: |
           # Check if deployment exists
           if kubectl get deployment battleships-${{ matrix.bot }} -n battleships-bots 2>/dev/null; then
-            # Update existing deployment
+            # Update existing deployment with new image
             kubectl set image deployment/battleships-${{ matrix.bot }} \
               ${{ matrix.bot }}=$ECR_REGISTRY/battleships-${{ matrix.bot }}:$IMAGE_TAG \
               -n battleships-bots
+
+            # Ensure OTEL endpoint is configured
+            kubectl set env deployment/battleships-${{ matrix.bot }} \
+              OTEL_EXPORTER_OTLP_ENDPOINT=http://opentelemetry-collector.battleships-bots.svc.cluster.local:4317 \
+              -n battleships-bots
+
             kubectl rollout status deployment/battleships-${{ matrix.bot }} -n battleships-bots
           else
             # Create new deployment from manifest
