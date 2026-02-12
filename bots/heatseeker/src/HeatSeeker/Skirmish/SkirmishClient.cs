@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using SharpShooter.Skirmish.Messages;
-using SharpShooter.Skirmish.Models;
+using HeatSeeker.Skirmish.Messages;
+using HeatSeeker.Skirmish.Models;
 
 namespace HeatSeeker.Skirmish;
 

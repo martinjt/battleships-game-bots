@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using SharpShooter.Skirmish.Messages;
-using SharpShooter.Skirmish.Models;
+using StackOverflowAttack.Skirmish.Messages;
+using StackOverflowAttack.Skirmish.Models;
 
 namespace StackOverflowAttack.Skirmish;
 
