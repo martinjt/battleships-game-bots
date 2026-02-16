@@ -11,6 +11,7 @@ public class SkirmishWebSocketClient : IDisposable
     private readonly ILogger _logger;
     private readonly Uri _webSocketUri;
     private readonly int _maxReconnectAttempts;
+    private readonly string? _authToken;
     private ClientWebSocket? _webSocket;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
     private CancellationTokenSource? _receiveLoopCts;
@@ -23,11 +24,12 @@ public class SkirmishWebSocketClient : IDisposable
 
     public bool IsConnected => _webSocket?.State == WebSocketState.Open;
 
-    public SkirmishWebSocketClient(string webSocketUrl, int maxReconnectAttempts, ILogger logger)
+    public SkirmishWebSocketClient(string webSocketUrl, int maxReconnectAttempts, ILogger logger, string? authToken = null)
     {
         _logger = logger;
         _webSocketUri = new Uri(webSocketUrl);
         _maxReconnectAttempts = maxReconnectAttempts;
+        _authToken = authToken;
     }
 
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
@@ -45,6 +47,13 @@ public class SkirmishWebSocketClient : IDisposable
 
                 _webSocket?.Dispose();
                 _webSocket = new ClientWebSocket();
+
+                // Set auth token header if provided
+                if (!string.IsNullOrEmpty(_authToken))
+                {
+                    _webSocket.Options.SetRequestHeader("X-Auth-Token", _authToken);
+                    _logger.LogDebug("Added X-Auth-Token header to WebSocket connection");
+                }
 
                 await _webSocket.ConnectAsync(_webSocketUri, cancellationToken).ConfigureAwait(false);
 

@@ -82,7 +82,7 @@ public class SkirmishClient : IDisposable
                 _logger.LogInformation("Connecting to WebSocket...");
                 var wsUrl = _config.GetWebSocketUrl(_playerId!);
                 _webSocketClient?.Dispose();
-                _webSocketClient = new SkirmishWebSocketClient(wsUrl, _config.MaxReconnectAttempts, _logger);
+                _webSocketClient = new SkirmishWebSocketClient(wsUrl, _config.MaxReconnectAttempts, _logger, _authSecret);
                 _webSocketClient.MessageReceived += HandleMessageAsync;
                 _webSocketClient.Connected += OnConnectedAsync;
                 _webSocketClient.Disconnected += OnDisconnectedAsync;
